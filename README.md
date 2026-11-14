@@ -2,6 +2,8 @@
 
 公開URL: https://claude.ai/artifact/5vitzxv363mSbTDzvxAmAd （このフォルダを Artifact として公開。公開は index.html を file_path、root=このフォルダ、変えたファイルを files に入れて publish する。css/js 単体では publish できない）
 
+GitHub Pages（スマホ用）: https://sagakan1582-jpn.github.io/spi-app/ （リポジトリ sagakan1582-jpn/spi-app の main 直下＝このフォルダの中身）。app/ を変えたら、add_repo(push) → clone → このフォルダを cp -r → commit・push で反映（1〜2分）。
+
 ## ファイル
 | ファイル | 中身 | よく触るか |
 |---|---|---|
