@@ -138,3 +138,8 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 /* 解き方：例題と数字の追跡 */
 .q.ex{font-size:15px;line-height:1.9}
 .lesson mark,.fig mark,.tbl mark{background:#FFF0E3;color:inherit;font-weight:800;padding:0 2px}
+/* リセット */
+.reset-row{display:flex;justify-content:flex-end;margin-top:28px}
+.reset-btn{background:none;border:1px solid var(--line);color:var(--off);font-size:12px;padding:6px 10px;cursor:pointer}
+.next.danger{background:var(--ng);margin-top:16px}
+.next.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line);margin-top:10px}

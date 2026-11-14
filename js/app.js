@@ -47,7 +47,7 @@ function recStage(f,l){for(var k=0;k<STAGES.length;k++)if(!cleared(f,l,STAGES[k]
 /* ===== 画面 ===== */
 var titleV=document.getElementById('title'), appV=document.getElementById('app'), inner=document.getElementById('inner');
 var S={view:'menu'};
-var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'menu',ailesson:'menu',aicheck:'menu',mock:'menu',mockq:'mock',mockres:'mock'};
+var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'menu',reset:'menu',ailesson:'menu',aicheck:'menu',mock:'menu',mockq:'mock',mockres:'mock'};
 /* AIモード（js/ai.js）が使う共通の部品 */
 var SPI=window.SPI={views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
   inner:function(){return inner;},logAnswer:function(r){logAnswer(r);},classify:classify,targetOf:targetOf,qid:qid,
@@ -95,7 +95,11 @@ function render(){
     '<button class="item primary" data-act="ai"><span class="ic" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg></span><span class="name">AIにお任せ教育モード</span>'+ICON.chev+'</button>'+
     '<button class="item" data-act="fields"><span class="ic blue" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></span><span class="name">分野別勉強モード</span>'+ICON.chev+'</button>'+
     '<button class="item" data-act="mock"><span class="ic orange" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg></span><span class="name">模擬テスト</span>'+ICON.chev+'</button>'+
-    '<button class="item compact about" data-act="about"><span class="name">SPIとは</span>'+ICON.chev+'</button>';
+    '<button class="item compact about" data-act="about"><span class="name">SPIとは</span>'+ICON.chev+'</button>'+
+    '<div class="reset-row"><button class="reset-btn" data-act="reset">リセット</button></div>';
+  } else if(S.view==='reset'){
+    h=bar('リセット')+'<div class="q">この端末のすべての記録を消しますか。</div>'+
+      '<button class="next danger" data-act="resetdo">消す</button><button class="next ghost" data-act="back">もどる</button>';
   } else if(S.view==='levels'){
     h=bar('分野別勉強モード');
     LEVELS.forEach(function(l){var has=levelHas(l),open=levelOpen(l);
@@ -167,6 +171,9 @@ inner.addEventListener('click',function(e){
   }
   else if(a==='nextstage'){startStage(S.stage+1);go('quiz');}
   else if(a==='tostages'){go('stages');}
+  else if(a==='reset'){go('reset');}
+  else if(a==='resetdo'){try{Object.keys(localStorage).forEach(function(k){if(k.indexOf('mainichi-spi-')===0)localStorage.removeItem(k);});}catch(e){}
+    location.hash='menu';location.reload();}
   else if(SPI.acts[a]){SPI.acts[a](b);}
 });
 
