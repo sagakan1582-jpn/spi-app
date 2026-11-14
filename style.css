@@ -135,3 +135,6 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .mock-row .num.ok{background:var(--ok);color:#fff} .mock-row .num.ng{background:var(--ng);color:#fff}
 .mock-row .sec{margin-left:auto}
 .choice.sel{border-color:var(--accent);background:var(--rec-bg)}
+/* 解き方：例題と数字の追跡 */
+.q.ex{font-size:15px;line-height:1.9}
+.lesson mark,.fig mark,.tbl mark{background:#FFF0E3;color:inherit;font-weight:800;padding:0 2px}
