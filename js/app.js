@@ -11,6 +11,11 @@ function qid(it){var s=it.id||it.q,h=0;for(var i=0;i<s.length;i++)h=(h*31+s.char
 function logAnswer(rec){LOG.push(rec);if(LOG.length>3000)LOG=LOG.slice(-3000);try{localStorage.setItem(LOGKEY,JSON.stringify(LOG));}catch(e){}}
 /* 結果の4分類：fast 正解・時間内／slow 正解・時間超過／wrong 不正解／timeout 時間切れ */
 function classify(ok,sec,target,to){return to?'timeout':!ok?'wrong':sec<=target?'fast':'slow';}
+/* ===== 数値を変える問題（テンプレート） =====
+   {id:'…', make:function(R){ return {q,c,a,inw,fig,calc,sec?}; }} の形。出すたびに make を呼び、新しい数値の問題を作る。
+   R は乱数の道具：R.int(min,max), R.pick(配列), R.shuffle(配列)。 */
+var RND={int:function(a,b){return a+Math.floor(Math.random()*(b-a+1));},pick:function(x){return x[Math.floor(Math.random()*x.length)];},shuffle:function(x){return shuffle(x);}};
+function inst(it){if(!it||!it.make)return it;for(var k=0;k<30;k++){try{var o=it.make(RND);if(o&&o.q){o.id=o.id||it.id;o.src=it;return o;}}catch(e){}}return null;}
 /* ===== 選択肢（単一選択と「すべて選ぶ」） ===== */
 var LT='ABCDEFGH';
 function isMulti(it){return Array.isArray(it.a);}
@@ -47,7 +52,7 @@ function recStage(f,l){for(var k=0;k<STAGES.length;k++)if(!cleared(f,l,STAGES[k]
 /* ===== 画面 ===== */
 var titleV=document.getElementById('title'), appV=document.getElementById('app'), inner=document.getElementById('inner');
 var S={view:'menu'};
-var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'menu',reset:'menu',ailesson:'menu',aicheck:'menu',mock:'menu',mockq:'mock',mockres:'mock'};
+var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'menu',reset:'menu',howto:'menu',ailesson:'menu',aicheck:'menu',mock:'menu',mockq:'mock',mockres:'mock'};
 /* AIモード（js/ai.js）が使う共通の部品 */
 var SPI=window.SPI={views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
   inner:function(){return inner;},logAnswer:function(r){logAnswer(r);},classify:classify,targetOf:targetOf,qid:qid,
@@ -55,7 +60,7 @@ var SPI=window.SPI={views:{},acts:{},state:function(){return S;},go:function(v){
   markCleared:function(f,l,k){P[f+'|'+l+'|'+k]=1;save();},
   inwText:function(it,f){return it.inw||(it.fig&&it.fig.parts?it.fig.parts.filter(function(x){return x.n;}).map(function(x){return x.n;}).join('・'):'');},
   inwHead:function(it,f){return it.inwh||(f==='順列・組合せ'?'整理':'内訳');},
-  figHtml:function(f){return figHtml(f);},isMulti:isMulti,isRight:isRight,ansText:ansText,pickText:pickText,choicesHtml:choicesHtml,toggleSel:toggleSel,bar:function(n){return bar(n);},icon:function(k){return ICON[k];},
+  figHtml:function(f){return figHtml(f);},inst:inst,isMulti:isMulti,isRight:isRight,ansText:ansText,pickText:pickText,choicesHtml:choicesHtml,toggleSel:toggleSel,bar:function(n){return bar(n);},icon:function(k){return ICON[k];},
   lessonHtml:function(f,l){return lessonHtml(f,l);}};
 var ICON={
  back:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
@@ -92,11 +97,15 @@ function render(){
   var h='';
   if(S.view==='menu'){
     h=bar('まいにちSPI',true)+
+    '<button class="item compact howto" data-act="howto"><span class="name">使い方</span>'+ICON.chev+'</button>'+
     '<button class="item primary" data-act="ai"><span class="ic" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg></span><span class="name">AIにお任せ教育モード</span>'+ICON.chev+'</button>'+
     '<button class="item" data-act="fields"><span class="ic blue" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></span><span class="name">分野別勉強モード</span>'+ICON.chev+'</button>'+
     '<button class="item" data-act="mock"><span class="ic orange" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg></span><span class="name">模擬テスト</span>'+ICON.chev+'</button>'+
     '<button class="item compact about" data-act="about"><span class="name">SPIとは</span>'+ICON.chev+'</button>'+
     '<div class="reset-row"><button class="reset-btn" data-act="reset">リセット</button></div>';
+  } else if(S.view==='howto'){
+    h=bar('使い方');
+    HOWTO.forEach(function(sec){h+='<section class="lesson"><h2>'+sec.h+'</h2>'+(sec.p?'<div class="lp">'+sec.p+'</div>':'')+(sec.fig?figHtml(sec.fig):'')+'</section>';});
   } else if(S.view==='reset'){
     h=bar('リセット')+'<div class="q">この端末のすべての記録を消しますか。</div>'+
       '<button class="next danger" data-act="resetdo">消す</button><button class="next ghost" data-act="back">もどる</button>';
@@ -138,7 +147,8 @@ function render(){
 function lessonHtml(f,l){var h='';(LESSON[f]&&LESSON[f][l]||[]).forEach(function(sec){
   h+='<section class="lesson"><h2>'+sec.h+'</h2>'+(sec.q?'<div class="q ex">'+sec.q+'</div>':'')+(sec.p?'<div class="lp">'+sec.p+'</div>':'')+(sec.fig?figHtml(sec.fig):'')+(sec.p2?'<div class="lp">'+sec.p2+'</div>':'')+'</section>';});return h;}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
-function startStage(i){S.stage=i;S.streak=0;S.pool=shuffle(BANK[S.field][S.level][STAGES[i].key]);S.idx=0;S.picked=null;S.view='quiz';}
+function instPool(p){return p.map(inst).filter(function(x){return x;});}
+function startStage(i){S.stage=i;S.streak=0;S.base=BANK[S.field][S.level][STAGES[i].key];S.pool=instPool(shuffle(S.base));S.idx=0;S.picked=null;S.view='quiz';}
 var tick=null;
 function stopTimer(){if(tick){clearInterval(tick);tick=null;}}
 function startQuestion(){stopTimer();S.t0=Date.now();S.timeout=false;S.sel=[];
@@ -166,12 +176,13 @@ inner.addEventListener('click',function(e){
   else if(a==='next'){
     if(S.streak>=STAGES[S.stage].need){P[S.field+'|'+S.level+'|'+STAGES[S.stage].key]=1;save();go('clear');return;}
     S.idx++;S.picked=null;
-    if(S.idx>=S.pool.length){var last=S.pool[S.pool.length-1];S.pool=shuffle(S.pool);if(S.pool.length>1&&S.pool[0]===last)S.pool.push(S.pool.shift());S.idx=0;}
+    if(S.idx>=S.pool.length){var last=S.pool[S.pool.length-1].src||S.pool[S.pool.length-1],nb=shuffle(S.base);if(nb.length>1&&nb[0]===last)nb.push(nb.shift());S.pool=instPool(nb);S.idx=0;}
     go('quiz');
   }
   else if(a==='nextstage'){startStage(S.stage+1);go('quiz');}
   else if(a==='tostages'){go('stages');}
   else if(a==='reset'){go('reset');}
+  else if(a==='howto'){go('howto');}
   else if(a==='resetdo'){try{Object.keys(localStorage).forEach(function(k){if(k.indexOf('mainichi-spi-')===0)localStorage.removeItem(k);});}catch(e){}
     location.hash='menu';location.reload();}
   else if(SPI.acts[a]){SPI.acts[a](b);}

@@ -17,7 +17,7 @@ function firstLevel(){for(var i=0;i<LEVELS.length;i++)if(fields(LEVELS[i]).lengt
 function nextLevel(l){for(var i=0;i<LEVELS.length;i++)if(LEVELS[i]>l&&fields(LEVELS[i]).length)return LEVELS[i];return null;}
 function st(f,l){var k=f+'|'+l;return A.f[k]||(A.f[k]={st:1,sk:0,wr:0,m:0,fs:0,due:0,iv:0,weak:0});}
 function pool(f,l,key){return (BANK[f]&&BANK[f][l]&&BANK[f][l][key])||[];}
-function pickQ(f,l,key){var p=pool(f,l,key);if(!p.length)return null;var last=Q.lastQ,c=p.filter(function(x){return x!==last;});c=c.length?c:p;return c[Math.floor(Math.random()*c.length)];}
+function pickQ(f,l,key){var p=pool(f,l,key);if(!p.length)return null;var last=Q.lastQ,c=p.filter(function(x){return x!==last;});c=c.length?c:p;var pk=c[Math.floor(Math.random()*c.length)];return X.inst(pk);}
 function count(t){return A.hist.slice(-10).filter(function(x){return x===t;}).length;}
 
 /* ===== 次の1問 ===== */
@@ -86,7 +86,7 @@ function update(item,r){var s=st(item.f,item.l),now=Date.now(),ok=(r==='fast'||r
 
 /* ===== 3ステップ診断（既存の問題から小問を作る） ===== */
 function uniq(a){var o=[];a.forEach(function(x){if(x&&o.indexOf(x)<0)o.push(x);});return o;}
-function allItems(f,l){var o=[];STAGES.forEach(function(g){if(!g.lesson)o=o.concat(pool(f,l,g.key));});return o;}
+function allItems(f,l){var o=[];STAGES.forEach(function(g){if(!g.lesson)o=o.concat(pool(f,l,g.key).map(X.inst).filter(function(x){return x;}));});return o;}
 function buildDiag(item){var it=item.it,f=item.f,l=item.l,steps=[];
   var own=X.inwText(it,f),others=[];
   Object.keys(BANK).forEach(function(g){if(g===f)return;Object.keys(BANK[g]).forEach(function(lv){allItems(g,+lv).slice(0,3).forEach(function(x){others.push(X.inwText(x,g));});});});
@@ -149,7 +149,7 @@ function show(){Q.picked=null;Q.sel=[];Q.timeout=false;Q.diagShow=false;
   if(Q.reLesson){var rl=Q.reLesson;Q.reLesson=null;Q.item={type:'lesson',f:rl.f,l:rl.l};X.go('ailesson');return;}
   Q.item=next();
   if(Q.item&&Q.item.type==='lesson'){X.go('ailesson');return;}
-  if(Q.item)Q.lastQ=Q.item.it;
+  if(Q.item)Q.lastQ=Q.item.it.src||Q.item.it;
   X.go('ai');startTimer();}
 function answer(i,to){stopTimer();var item=Q.item,it=item.it,ok=!to&&X.isRight(it,i),sec=Math.round((Date.now()-Q.t0)/1000),tg=X.targetOf(it,item.l);
   Q.picked=i;Q.timeout=!!to;Q.sec=sec;Q.r=X.classify(ok,sec,tg,to);

@@ -20,7 +20,7 @@ function start(){var all=levels(),comp=all.filter(function(l){return l<=5;}),inf
 function pickItem(l){var fs=fields(l),k=T.fi[l]||0,tries=0;
   while(tries<fs.length*2){var f=fs[k%fs.length];k++;tries++;
     var p=[].concat((BANK[f][l].real||[]),(BANK[f][l].applied||[])).filter(function(x){return T.used.indexOf(x)<0;});
-    if(p.length){T.fi[l]=k;var it=p[Math.floor(Math.random()*p.length)];T.used.push(it);return {f:f,l:l,it:it};}}
+    if(p.length){T.fi[l]=k;var it=p[Math.floor(Math.random()*p.length)];T.used.push(it);var x=X.inst(it);if(x)return {f:f,l:l,it:x};}}
   return null;}
 function nextQ(){if(T.i>=N||Date.now()-T.t0>=TOTAL){finish();return;}
   if(T.inf.length&&T.i===NC&&T.ls!==T.inf){T.ls=T.inf;T.li=0;T.up=0;T.dn=0;}
