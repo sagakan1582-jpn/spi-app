@@ -75,7 +75,7 @@ function update(item,r){var s=st(item.f,item.l),now=Date.now(),ok=(r==='fast'||r
         if(item.stIdx<last)s.st++;else s.m=Math.max(s.m,2);}}
     if(r==='slow'&&s.m>=1)s.weak=1;
     if(item.stIdx===last&&s.m>=2&&r==='fast'){s.fs++;s.weak=0;
-      if(s.fs>=3&&s.m<3){s.m=3;s.iv=0;s.due=now+DAY;}}
+      if(s.fs>=3&&s.m<3&&(s.kc||0)>=2){s.m=3;s.iv=0;s.due=now+DAY;}}
     else if(r!=='fast')s.fs=0;
     if(r==='fast'&&item.type==='weak'&&s.m<2)s.weak=0;
   }else{s.sk=0;s.fs=0;s.wr++;s.weak=1;
@@ -105,6 +105,9 @@ function buildDiag(item){var it=item.it,f=item.f,l=item.l,steps=[];
 function diagResult(step,ok){var item=Q.diag.item,s=st(item.f,item.l);
   X.logAnswer({t:Date.now(),f:item.f,l:item.l,s:'diag'+(step.k+1),q:X.qid(item.it),r:ok?'fast':'wrong',sec:0,tg:0,pick:Q.diag.pick});
   if(ok)return;
+  if(Q.diag.mode==='check'){
+    /* 型チェックで間違えた＝型を使わずに正解した可能性。連続正解を取り消し、同じ段階を2問練習させる */
+    if(Q.before){s.st=Q.before.st;s.m=Q.before.m;}s.sk=0;s.fs=0;s.weak=1;s.kc=0;Q.drill={f:item.f,l:item.l,stIdx:Math.max(1,item.stIdx),n:2};save();return;}
   /* つまずいた所に戻す：内訳・図 → 概念か練習、計算 → 実践（単純な数値） */
   var back=step.k<2?Math.min(s.st,2):Math.min(s.st,3);
   if(back<1)back=1;s.st=back;s.sk=0;s.wr=0;
@@ -130,7 +133,7 @@ function viewAI(){var item=Q.item,h;
     h+='<button class="next" data-act="ainext">次へ</button></div>';}
   return h;
 }
-function viewDiag(){var d=Q.diag,step=d.steps[d.i],item=d.item,h=X.bar('診断 '+(d.i+1)+'/'+d.steps.length);
+function viewDiag(){var d=Q.diag,step=d.steps[d.i],item=d.item,h=X.bar((d.mode==='check'?'型チェック ':'診断 ')+(d.i+1)+'/'+d.steps.length);
   h+='<div class="q">'+item.it.q+'</div><div class="q">'+STEP_Q[step.k]+'</div><div class="choices">';
   step.c.forEach(function(c,i){var cls='';if(d.pick!=null){if(i===step.a)cls=' correct';else if(i===d.pick)cls=' wrong';}
     var body=step.k===1?X.figHtml(c):c;
@@ -155,11 +158,18 @@ function answer(i,to){stopTimer();var item=Q.item,it=item.it,ok=!to&&X.isRight(i
   Q.picked=i;Q.timeout=!!to;Q.sec=sec;Q.r=X.classify(ok,sec,tg,to);
   /* 本番タイマーでないときは「遅い」で弱点にしすぎないよう、目安を超えたら slow とだけ記録する */
   X.logAnswer({t:Date.now(),f:item.f,l:item.l,s:item.key,q:X.qid(it),r:Q.r,sec:sec,tg:tg,pick:i,ai:item.type});
+  var s0=st(item.f,item.l);Q.before={st:s0.st,m:s0.m};
   update(item,Q.r);
   /* 診断は実践の問題で間違えたときだけ（概念・練習は解説で足りる） */
   if(Q.r==='wrong'&&item.type!=='check'&&item.type!=='diag0'&&item.stIdx>=3){var steps=buildDiag(item);if(steps.length)Q.diag={item:item,steps:steps,i:0,pick:null,pending:true};}
+  /* 型チェック：正解しても、型（内訳→図→計算）を使って解けたかを確かめる。
+     速すぎる正解（目標の2割未満か8秒未満）、実践でまだ2回合格していない、または5回に1回の抜き打ちで出す。2回合格しないと「速い」にならない */
+  else if((Q.r==='fast'||Q.r==='slow')&&item.stIdx>=2&&(item.type==='new'||item.type==='weak'||item.type==='review'||item.type==='extra')){
+    var s1=st(item.f,item.l),quick=Q.sec<Math.max(8,tg*0.2);
+    if(quick||((s1.kc||0)<2&&item.stIdx>=3)||Math.random()<0.2){var cs=buildDiag(item);if(cs.length)Q.diag={item:item,steps:cs,i:0,pick:null,pending:true,mode:'check'};}}
   X.render();var r=X.inner().querySelector('.result');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'});}
 
+X.aiQ=function(){return Q;};
 X.acts.ai=function(){load();Q={};show();};
 X.acts.aipick=function(b){var i=+b.dataset.i;if(X.isMulti(Q.item.it)){X.toggleSel(Q.sel,i);X.render();}else answer(i,false);};
 X.acts.aisubmit=function(){answer(Q.sel.slice(),false);};
@@ -169,7 +179,7 @@ X.acts.ainext=function(){if(Q.checkResult&&X.state().view==='aicheck'){Q.checkRe
 X.acts.aidiag=function(b){var d=Q.diag,step=d.steps[d.i];d.pick=+b.dataset.i;var ok=d.pick===step.a;
   diagResult(step,ok);if(!ok)d.failed=true;X.render();};
 X.acts.aidiagnext=function(){var d=Q.diag;
-  if(d.failed||d.i+1>=d.steps.length){Q.diag=null;show();return;}
+  if(d.failed||d.i+1>=d.steps.length){if(d.mode==='check'&&!d.failed){var s=st(d.item.f,d.item.l);s.kc=(s.kc||0)+1;save();}Q.diag=null;show();return;}
   d.i++;d.pick=null;X.render();};
 X.acts.ailessondone=function(){var item=Q.item;X.markCleared(item.f,item.l,'lesson');show();};
 })();
