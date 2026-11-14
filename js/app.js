@@ -1,0 +1,178 @@
+/* まいにちSPI 画面と進み具合 */
+(function(){
+/* ===== 進み具合（この端末にだけ保存） ===== */
+var KEY='mainichi-spi-progress-v1', P={};
+try{P=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){P={};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(P));}catch(e){}}
+/* ===== 解答の記録（AIモードで弱点を見つけるのに使う） ===== */
+var LOGKEY='mainichi-spi-log-v1', LOG=[];
+try{LOG=JSON.parse(localStorage.getItem(LOGKEY)||'[]')||[];}catch(e){LOG=[];}
+function qid(it){var s=it.id||it.q,h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return it.id||('q'+(h>>>0).toString(36));}
+function logAnswer(rec){LOG.push(rec);if(LOG.length>3000)LOG=LOG.slice(-3000);try{localStorage.setItem(LOGKEY,JSON.stringify(LOG));}catch(e){}}
+/* 結果の4分類：fast 正解・時間内／slow 正解・時間超過／wrong 不正解／timeout 時間切れ */
+function classify(ok,sec,target,to){return to?'timeout':!ok?'wrong':sec<=target?'fast':'slow';}
+/* ===== 選択肢（単一選択と「すべて選ぶ」） ===== */
+var LT='ABCDEFGH';
+function isMulti(it){return Array.isArray(it.a);}
+function isRight(it,p){if(!isMulti(it))return p===it.a;if(!Array.isArray(p))return false;var a=it.a.slice().sort(),b=p.slice().sort();return a.length===b.length&&a.every(function(x,i){return x===b[i];});}
+function inAns(it,i){return isMulti(it)?it.a.indexOf(i)>=0:i===it.a;}
+function inPick(p,i){return Array.isArray(p)?p.indexOf(i)>=0:p===i;}
+function ansText(it){return isMulti(it)?it.a.map(function(i){return LT[i];}).join('・'):it.c[it.a];}
+function pickText(it,p){if(p==null||p===-1||(Array.isArray(p)&&!p.length))return '';return Array.isArray(p)?p.map(function(i){return LT[i];}).join('・'):LT[p]+'　'+it.c[p];}
+function choicesHtml(it,picked,sel,act,sub){var h='<div class="choices">';
+  it.c.forEach(function(c,i){var cls='';
+    if(picked!=null){if(inAns(it,i))cls=' correct';else if(inPick(picked,i))cls=' wrong';}
+    else if(sel&&sel.indexOf(i)>=0)cls=' sel';
+    h+='<button class="choice'+cls+'" data-act="'+act+'" data-i="'+i+'"'+(picked!=null?' disabled':'')+(isMulti(it)&&picked==null?' aria-pressed="'+(cls===' sel')+'"':'')+'><span class="lt">'+LT[i]+'</span>'+c+'</button>';});
+  h+='</div>';
+  if(isMulti(it)&&picked==null)h+='<button class="next" data-act="'+sub+'">決定</button>';
+  return h;}
+function toggleSel(sel,i){var k=sel.indexOf(i);if(k>=0)sel.splice(k,1);else sel.push(i);}
+function targetOf(it,l){return it.sec||TARGET_SEC[l]||90;}
+function strictTimer(){return STAGES[S.stage].key===TIMER.stage&&S.level>=TIMER.fromLevel;}
+function cleared(f,l,s){return !!P[f+'|'+l+'|'+s];}
+function stagesCleared(f,l){var n=0;STAGES.forEach(function(s){if(cleared(f,l,s.key))n++;});return n;}
+function hasContent(f,l){return !!(BANK[f]&&BANK[f][l]);}
+function fieldDone(f,l){return stagesCleared(f,l)===STAGES.length;}
+function levelHas(l){return CURRICULUM[l].some(function(f){return hasContent(f,l);});}
+function levelDone(l){return CURRICULUM[l].every(function(f){return !hasContent(f,l)||fieldDone(f,l);});}
+/* ロックはしない。中身があれば開ける。講座の順で次にやるものを「推奨」として目立たせる */
+function levelOpen(l){return levelHas(l);}
+function fieldOpen(f,l){return hasContent(f,l);}
+function stageOpen(f,l,i){return true;}
+function recLevel(){for(var k=0;k<LEVELS.length;k++)if(levelHas(LEVELS[k])&&!levelDone(LEVELS[k]))return LEVELS[k];return null;}
+function recField(l){var fs=CURRICULUM[l];for(var k=0;k<fs.length;k++)if(hasContent(fs[k],l)&&!fieldDone(fs[k],l))return fs[k];return null;}
+function recStage(f,l){for(var k=0;k<STAGES.length;k++)if(!cleared(f,l,STAGES[k].key))return k;return -1;}
+
+/* ===== 画面 ===== */
+var titleV=document.getElementById('title'), appV=document.getElementById('app'), inner=document.getElementById('inner');
+var S={view:'menu'};
+var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'menu',ailesson:'menu',aicheck:'menu',mock:'menu',mockq:'mock',mockres:'mock'};
+/* AIモード（js/ai.js）が使う共通の部品 */
+var SPI=window.SPI={views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
+  inner:function(){return inner;},logAnswer:function(r){logAnswer(r);},classify:classify,targetOf:targetOf,qid:qid,
+  shuffle:function(x){return shuffle(x);},cleared:function(f,l,k){return cleared(f,l,k);},
+  markCleared:function(f,l,k){P[f+'|'+l+'|'+k]=1;save();},
+  inwText:function(it,f){return it.inw||(it.fig&&it.fig.parts?it.fig.parts.filter(function(x){return x.n;}).map(function(x){return x.n;}).join('・'):'');},
+  inwHead:function(it,f){return it.inwh||(f==='順列・組合せ'?'整理':'内訳');},
+  figHtml:function(f){return figHtml(f);},isMulti:isMulti,isRight:isRight,ansText:ansText,pickText:pickText,choicesHtml:choicesHtml,toggleSel:toggleSel,bar:function(n){return bar(n);},icon:function(k){return ICON[k];},
+  lessonHtml:function(f,l){return lessonHtml(f,l);}};
+var ICON={
+ back:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
+ chev:'<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>',
+ rec:'<svg class="rec-ic" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="推奨"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>',
+ lock:'<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="ロック中"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+ check:'<svg class="done-mark" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="クリア"><path d="M5 12l5 5 9-10"/></svg>',
+ ok:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>',
+ ng:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+ big:'<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>'
+};
+function bar(name,logo){
+  return '<div class="bar"><button class="back" data-act="back" aria-label="もどる">'+ICON.back+'</button>'+
+    (logo?'<span class="mini-logo" aria-hidden="true">SPI</span>':'')+'<span class="bar-name">'+name+'</span>'+(S.view==='quiz'?streakHtml():'')+'</div>';
+}
+function streakHtml(){var need=STAGES[S.stage].need,h='<span class="streak" role="img" aria-label="連続正解 '+S.streak+' / '+need+'">';for(var i=0;i<need;i++)h+='<i class="'+(i<S.streak?'on':'')+'"></i>';return h+'</span>';}
+function progHtml(n){var h='<span class="prog" role="img" aria-label="'+n+' / '+STAGES.length+'">';for(var i=0;i<STAGES.length;i++)h+='<i class="'+(i<n?'on':'')+'"></i>';return h+'</span>';}
+function cellHtml(x,tag,cls){var c=cls||'';if(x&&x.charAt(0)==='!'){x=x.slice(1);c+=' ask';}else if(x==='?')c+=' ask';return '<'+tag+(c?' class="'+c.trim()+'"':'')+'>'+(x||'')+'</'+tag+'>';}
+function figHtml(f){
+  if(f.table){var t='<div class="tbl-wrap"><table class="tbl"><tr>';
+    f.table.head.forEach(function(x){t+=cellHtml(x,'th');});t+='</tr>';
+    f.table.rows.forEach(function(r){t+='<tr>';r.forEach(function(x,i){t+=cellHtml(x,i===0?'th':'td',r[0]==='計'||i===r.length-1&&f.table.head[i]==='計'?'sum':'');});t+='</tr>';});
+    return t+'</table></div>';}
+  var rows=f.rows||[[{n:f.whole.n||'全体',r:f.whole.r,v:f.whole.v,ask:f.whole.ask,w:1}],f.parts];
+  var w='<div class="fig" role="img" aria-label="図">';
+  rows.forEach(function(row){w+='<div class="row">';row.forEach(function(p){
+    var top=p.n?(p.n+(p.r?'：'+p.r:'')):(p.r||''),bot=p.v||'';var sp=!p.n&&!p.r&&!p.v;
+    w+='<div class="seg'+(p.ask?' ask':'')+(sp?' sp':'')+'" style="flex:'+p.w+'"><span class="t'+(top.indexOf('?')>=0?' ask-v':'')+'">'+(top||'&nbsp;')+'</span><span class="arr"></span><span class="v'+(bot.indexOf('?')>=0?' ask-v':'')+'">'+(bot||'&nbsp;')+'</span></div>';});
+    w+='</div>';});
+  return w+'</div>';
+}
+
+function render(){
+  var h='';
+  if(S.view==='menu'){
+    h=bar('まいにちSPI',true)+
+    '<button class="item primary" data-act="ai"><span class="ic" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg></span><span class="name">AIにお任せ教育モード</span>'+ICON.chev+'</button>'+
+    '<button class="item" data-act="fields"><span class="ic blue" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></span><span class="name">分野別勉強モード</span>'+ICON.chev+'</button>'+
+    '<button class="item" data-act="mock"><span class="ic orange" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg></span><span class="name">模擬テスト</span>'+ICON.chev+'</button>'+
+    '<button class="item compact about" data-act="about"><span class="name">SPIとは</span>'+ICON.chev+'</button>';
+  } else if(S.view==='levels'){
+    h=bar('分野別勉強モード');
+    LEVELS.forEach(function(l){var has=levelHas(l),open=levelOpen(l);
+      h+='<button class="item compact'+(l===recLevel()?' rec':'')+'" data-act="level" data-l="'+l+'"'+(open?'':' disabled')+'>'+(l===recLevel()?ICON.rec:'')+'<span class="num">'+l+'</span><span class="name">指標'+l+'</span>'+
+        (has&&levelDone(l)?ICON.check:'')+(open?ICON.chev:'')+'</button>';});
+  } else if(S.view==='fields'){
+    h=bar('指標'+S.level);
+    CURRICULUM[S.level].forEach(function(f){var has=hasContent(f,S.level),open=fieldOpen(f,S.level),n=stagesCleared(f,S.level);
+      h+='<button class="item compact'+(f===recField(S.level)?' rec':'')+'" data-act="field" data-f="'+f+'"'+(open?'':' disabled')+'>'+(f===recField(S.level)?ICON.rec:'')+'<span class="name">'+f+'</span>'+
+        (has?(n===STAGES.length?ICON.check:progHtml(n)):'')+(open?ICON.chev:'')+'</button>';});
+  } else if(S.view==='stages'){
+    h=bar(S.field+'・指標'+S.level);
+    STAGES.forEach(function(s,i){var open=stageOpen(S.field,S.level,i),done=cleared(S.field,S.level,s.key);
+      h+='<button class="item compact'+(i===recStage(S.field,S.level)?' rec':'')+'" data-act="stage" data-i="'+i+'"'+(open?'':' disabled')+'>'+(i===recStage(S.field,S.level)?ICON.rec:'')+'<span class="num">'+(i+1)+'</span><span class="name">'+s.name+'</span>'+(done?ICON.check:'')+ICON.chev+'</button>';});
+  } else if(S.view==='quiz'){
+    var it=S.pool[S.idx];
+    h=bar(STAGES[S.stage].name)+(S.picked==null&&strictTimer()?'<div class="timer" role="img" aria-label="制限時間"><i id="tbar"></i></div>':'')+'<div class="q">'+it.q+'</div>'+choicesHtml(it,S.picked,S.sel,'pick','submit');
+    if(S.picked!=null){var ok=isRight(it,S.picked);
+      h+='<div class="result"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON.ok+'正解':ICON.ng+(S.timeout?'時間切れ':'不正解'))+'<span class="sec'+(S.lastR==='slow'?' over':'')+'">'+S.lastSec+'秒</span></div>'+'<div class="calc"><b>'+(it.inwh||(S.field==='順列・組合せ'?'整理':'内訳'))+'</b>　'+(it.inw||it.fig.parts.filter(function(x){return x.n;}).map(function(x){return x.n;}).join('・'))+'</div>'+figHtml(it.fig)+'<div class="calc">'+it.calc+'</div><div class="calc"><b>答え</b>　'+ansText(it)+'</div>'+
+        '<button class="next" data-act="next">次へ</button></div>';}
+  } else if(S.view==='about'){
+    h=bar('SPIとは');
+    ABOUT.forEach(function(sec){h+='<section class="lesson"><h2>'+sec.h+'</h2>'+(sec.p?'<div class="lp">'+sec.p+'</div>':'')+(sec.fig?figHtml(sec.fig):'')+(sec.p2?'<div class="lp">'+sec.p2+'</div>':'')+'</section>';});
+  } else if(S.view==='lesson'){
+    h=bar(S.field+'・指標'+S.level);
+    h+=lessonHtml(S.field,S.level);
+    h+='<button class="next" data-act="lessondone">'+STAGES[1].name+'へ</button>';
+  } else if(S.view==='clear'){
+    var nx=S.stage+1<STAGES.length;
+    h=bar('')+'<div class="clear"><div class="clear-badge">'+ICON.big+'</div><div class="clear-text">'+STAGES[S.stage].name+'<br>クリア</div>'+
+      '<button class="next" data-act="'+(nx?'nextstage':'tostages')+'">'+(nx?STAGES[S.stage+1].name+'へ':'もどる')+'</button></div>';
+  }
+  else if(SPI.views[S.view]){h=SPI.views[S.view]();}
+  inner.innerHTML=h;
+}
+function lessonHtml(f,l){var h='';(LESSON[f]&&LESSON[f][l]||[]).forEach(function(sec){
+  h+='<section class="lesson"><h2>'+sec.h+'</h2><div class="lp">'+sec.p+'</div>'+(sec.fig?figHtml(sec.fig):'')+(sec.p2?'<div class="lp">'+sec.p2+'</div>':'')+'</section>';});return h;}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function startStage(i){S.stage=i;S.streak=0;S.pool=shuffle(BANK[S.field][S.level][STAGES[i].key]);S.idx=0;S.picked=null;S.view='quiz';}
+var tick=null;
+function stopTimer(){if(tick){clearInterval(tick);tick=null;}}
+function startQuestion(){stopTimer();S.t0=Date.now();S.timeout=false;S.sel=[];
+  if(!strictTimer())return;var lim=targetOf(S.pool[S.idx],S.level)*1000;
+  tick=setInterval(function(){var b=document.getElementById('tbar');var left=1-(Date.now()-S.t0)/lim;
+    if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
+    if(left<=0){stopTimer();answer(-1,true);}},200);}
+function answer(i,to){stopTimer();var it=S.pool[S.idx],ok=!to&&isRight(it,i),sec=Math.round((Date.now()-S.t0)/1000),tg=targetOf(it,S.level);
+  S.picked=i;S.timeout=!!to;S.lastSec=sec;S.lastR=classify(ok,sec,tg,to);S.streak=ok?S.streak+1:0;
+  logAnswer({t:Date.now(),f:S.field,l:S.level,s:STAGES[S.stage].key,q:qid(it),r:S.lastR,sec:sec,tg:tg,pick:i});
+  render();var r=inner.querySelector('.result');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'});}
+function go(v){if(v!=='quiz')stopTimer();S.view=v;render();appV.scrollTop=0;if(v==='quiz'&&S.picked==null)startQuestion();}
+
+inner.addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b||b.disabled)return;var a=b.dataset.act;
+  if(a==='back'){if(S.view==='menu'){location.hash='';showTitle();}else go(PARENT[S.view]);}
+  else if(a==='fields'){go('levels');}
+  else if(a==='about'){go('about');}
+  else if(a==='field'){S.field=b.dataset.f;go('stages');}
+  else if(a==='level'){S.level=+b.dataset.l;go('fields');}
+  else if(a==='stage'){var si=+b.dataset.i;if(STAGES[si].lesson){S.stage=si;go('lesson');}else{startStage(si);go('quiz');}}
+  else if(a==='lessondone'){P[S.field+'|'+S.level+'|lesson']=1;save();startStage(1);go('quiz');}
+  else if(a==='pick'){var pi=+b.dataset.i;if(isMulti(S.pool[S.idx])){toggleSel(S.sel,pi);render();}else answer(pi,false);}
+  else if(a==='submit'){answer(S.sel.slice(),false);}
+  else if(a==='next'){
+    if(S.streak>=STAGES[S.stage].need){P[S.field+'|'+S.level+'|'+STAGES[S.stage].key]=1;save();go('clear');return;}
+    S.idx++;S.picked=null;
+    if(S.idx>=S.pool.length){var last=S.pool[S.pool.length-1];S.pool=shuffle(S.pool);if(S.pool.length>1&&S.pool[0]===last)S.pool.push(S.pool.shift());S.idx=0;}
+    go('quiz');
+  }
+  else if(a==='nextstage'){startStage(S.stage+1);go('quiz');}
+  else if(a==='tostages'){go('stages');}
+  else if(SPI.acts[a]){SPI.acts[a](b);}
+});
+
+function showTitle(){titleV.hidden=false;appV.hidden=true;}
+function showApp(){titleV.hidden=true;appV.hidden=false;S={view:'menu'};render();}
+document.getElementById('start').addEventListener('click',function(){location.hash='menu';showApp();});
+window.addEventListener('hashchange',function(){if(location.hash==='#menu'){if(appV.hidden)showApp();}else showTitle();});
+if(location.hash==='#menu')showApp();
+})();
