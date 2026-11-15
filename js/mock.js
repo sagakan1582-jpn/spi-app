@@ -78,6 +78,7 @@ function viewRes(){var r=T.res,h=X.bar('模擬テスト');
       h+='<div class="result"><div class="q">'+it.q+'</div>'+(X.pickText(it,x.pick)?'<div class="calc"><b>選んだ答え</b>　'+X.pickText(it,x.pick)+'</div>':'')+
         '<div class="calc"><b>'+X.inwHead(it,x.f)+'</b>　'+X.inwText(it,x.f)+'</div>'+(it.fig?X.figHtml(it.fig):'')+'<div class="calc">'+(it.calc||'')+'</div><div class="calc"><b>答え</b>　'+(X.isMulti(it)?X.ansText(it):'ABCDE'[it.a]+'　'+it.c[it.a])+'</div></div>';}});
   return h+'</div><button class="next" data-act="mocktop">もどる</button>';}
+X.mockT=function(){return T;};
 X.views.mock=viewTop;X.views.mockq=viewQ;X.views.mockres=viewRes;
 X.acts.mock=function(){X.go('mock');};
 X.acts.mockstart=function(){start();};
