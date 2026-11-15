@@ -18,7 +18,8 @@ function levels(){return LEVELS.filter(function(l){return fields(l).length;});}
      目標時間（講座の60〜90秒）は「速い・遅い」の判定だけに使う。
    - 能力 a：指標4から。目標時間内の正解+0.4、目標より遅い正解は±0（ぎりぎりの正解では上がらない）、間違い・時間切れ−0.6（3〜7）。
    - 推論：a≥4.4 で直前2問が正解のとき cb（a≥6.4 なら指標7、ほかは指標6）、それ以外は1つ選ぶ推論（指標6）。 */
-var PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
+/* 回答数の読み替え：本番の1画面（約2分半）はアプリの1問より重いので、本番の回答数×K をアプリの回答数とみなす（12→18、5→8）。 */
+var K=1.5,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
 function start(){T={a:4,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0};nextQ();}
 function limOf(c){return c.k==='m'?180:c.k==='e'?120:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
 function lastOk(n){var xs=T.ans.slice(-n);return xs.length===n&&xs.every(okOf);}
@@ -57,8 +58,8 @@ function okRate(xs){return xs.length?xs.filter(okOf).length/xs.length:0;}
 function stats(){var n=T.ans.length,inf=T.ans.filter(function(x){return x.k!=='c';}).length;
   return {n:n,inf:inf,r:n?inf/n:0,cb:T.ans.filter(function(x){return x.k==='m';}).length};}
 function estimate(){var s=stats();if(!s.n)return null;
-  if(s.n<=5)return 3;
-  if(s.r>=0.5&&s.cb>=3&&s.n>=12)return 7;
+  if(s.n<=Math.round(5*K))return 3;
+  if(s.r>=0.5&&s.cb>=3&&s.n>=Math.round(12*K))return 7;
   if(s.r>=0.5&&s.cb>=2)return 6;
   if(s.cb>=2)return 5;
   if(s.cb>=1)return 4;
