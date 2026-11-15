@@ -132,6 +132,8 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .mock-est-n{font-size:64px;font-weight:800;line-height:1;color:var(--accent)}
 .mock-est-l{font-size:15px;font-weight:700}
 .mock-hist{margin-top:20px}
+.mock-best{margin-bottom:16px}
+.mock-pb{margin-top:8px;padding:4px 10px;border:2px solid var(--accent);color:var(--accent);font-size:14px;font-weight:800}
 .mock-row .num.ok{background:var(--ok);color:#fff} .mock-row .num.ng{background:var(--ng);color:#fff}
 .mock-row .sec{margin-left:auto}
 .choice.sel{border-color:var(--accent);background:var(--rec-bg)}

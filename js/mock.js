@@ -5,6 +5,11 @@
    - 問題は 実践（単純な数値）と実践（実際の数値）を共用する。 */
 (function(){
 var X=window.SPI, MKEY='mainichi-spi-mock-v1', TOTAL=23*60*1000, T=null, tick=null;
+/* 自己ベスト：推定段階 → 実力の推定値 → 正解数 の順で比べ、いちばん良い1回を別に残す（履歴の30件とは別） */
+var BKEY='mainichi-spi-mock-best-v1';
+function best(){try{var b=JSON.parse(localStorage.getItem(BKEY)||'null');if(b)return b;}catch(e){}
+  var hs=hist().filter(function(x){return x.est!=null;});var m=null;hs.forEach(function(x){if(better(x,m))m=x;});return m;}
+function better(a,b){if(!b)return true;if(a.est!==b.est)return a.est>b.est;if((a.th||0)!==(b.th||0))return (a.th||0)>(b.th||0);return a.ok>b.ok;}
 function hist(){try{return JSON.parse(localStorage.getItem(MKEY)||'[]')||[];}catch(e){return [];}}
 function saveHist(h){try{localStorage.setItem(MKEY,JSON.stringify(h.slice(-30)));}catch(e){}}
 function fields(l){return (CURRICULUM[l]||[]).filter(function(f){return BANK[f]&&BANK[f][l];});}
@@ -72,7 +77,8 @@ function stats(){var n=T.ans.length,inf=T.ans.filter(function(x){return x.k!=='c
 /* 推定は平均に引き寄せられて低めに出るので、+sh してから切り捨てる（仮想受検者1000人で、高めと低めのずれが同数になる値） */
 function estimate(){if(!T.ans.length)return null;return clamp(Math.floor(T.th+P.sh),1,7);}
 function finish(){stop();var est=estimate(),ok=T.ans.filter(okOf).length;
-  var st=stats();T.res={est:est,ok:ok,n:st.n,st:st};var h=hist();h.push({t:Date.now(),est:est,ok:ok,n:st.n});saveHist(h);
+  var st=stats();T.res={est:est,ok:ok,n:st.n,st:st};var rec={t:Date.now(),est:est,ok:ok,n:st.n,th:Math.round(T.th*100)/100},pb0=best(),h=hist();h.push(rec);saveHist(h);
+  T.res.pb=est!=null&&better(rec,pb0);if(T.res.pb){try{localStorage.setItem(BKEY,JSON.stringify(rec));}catch(e){}}
   T.open=-1;X.go('mockres');}
 
 /* ===== 画面 ===== */
@@ -85,6 +91,7 @@ var GUIDE=[
  {h:'環境と注意',p:'静かな場所で、23分続けて時間をとる。スマホの通知は切っておく。<br>途中で戻ったりアプリを閉じたりすると、そのテストは記録されない。'}
 ];
 function viewTop(){var h=X.bar('模擬テスト'),hs=hist().slice(-5).reverse();
+  var b=best();if(b)h+='<div class="tbl-wrap mock-best"><table class="tbl"><tr><th>自己ベスト</th><th>推定段階</th><th>正解</th></tr><tr><td>'+fmt(b.t)+'</td><td>'+b.est+'</td><td>'+b.ok+' / '+b.n+'</td></tr></table></div>';
   GUIDE.forEach(function(g){h+='<section class="lesson"><h2>'+g.h+'</h2><div class="lp">'+g.p+'</div></section>';});
   h+='<button class="next" data-act="mockstart">開始</button>';
   if(hs.length){h+='<div class="tbl-wrap mock-hist"><table class="tbl"><tr><th>日時</th><th>推定段階</th><th>正解</th></tr>';
@@ -95,7 +102,7 @@ function viewQ(){var c=T.cur,h=X.bar((T.i+1)+'問目');
   h+='<div class="q">'+c.it.q+'</div>'+X.choicesHtml(c.it,null,T.sel,'mockpick','mocksubmit');
   return h;}
 function viewRes(){var r=T.res,h=X.bar('模擬テスト');
-  h+='<div class="mock-est"><div class="mock-est-l">推定段階</div><div class="mock-est-n">'+(r.est==null?'-':r.est)+'</div><div class="mock-est-l">'+r.ok+' / '+r.n+'</div></div>'+
+  h+='<div class="mock-est"><div class="mock-est-l">推定段階</div><div class="mock-est-n">'+(r.est==null?'-':r.est)+'</div><div class="mock-est-l">'+r.ok+' / '+r.n+'</div>'+(r.pb?'<div class="mock-pb">自己ベスト</div>':'')+'</div>'+
     '<div class="tbl-wrap"><table class="tbl"><tr><th>回答数</th><td>'+r.st.n+'</td></tr><tr><th>推論の割合</th><td>'+Math.round(r.st.r*100)+'%</td></tr><tr><th>すべて選ぶ</th><td>'+r.st.cb+'回</td></tr></table></div>';
   var by={};T.ans.forEach(function(x){var b=by[x.f]||(by[x.f]={n:0,ok:0});b.n++;if(x.r==='fast'||x.r==='slow')b.ok++;});
   h+='<div class="tbl-wrap"><table class="tbl"><tr><th>分野</th><th>正解</th></tr>';
