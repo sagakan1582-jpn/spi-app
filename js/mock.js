@@ -78,7 +78,15 @@ function finish(){stop();var est=estimate(),ok=T.ans.filter(okOf).length;
 /* ===== 画面 ===== */
 function d2(n){return (n<10?'0':'')+n;}
 function fmt(t){var d=new Date(t);return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+d2(d.getMinutes());}
-function viewTop(){var h=X.bar('模擬テスト')+'<button class="next" data-act="mockstart">開始</button>',hs=hist().slice(-5).reverse();
+var GUIDE=[
+ {h:'時間',p:'全体23分。時間が終わるまで解き続ける（問題数は決まっていない）。<br>1問ごとにも制限時間がある。計算90〜120秒、推論120秒、すべて選ぶ180秒。<br>上のバーが全体の残り時間、下のバーがその問題の残り時間。青 → 黄 → 赤と変わり、0になると次の問題へ進む。'},
+ {h:'使っていいもの',p:'紙とペン（本番は会場で配られるメモ用紙と筆記用具）。<br>電卓・スマホの計算機は使わない。本番は電卓が使えない。'},
+ {h:'進め方',p:'選択肢を選ぶと次の問題へ進む。前の問題には戻れない。<br>「すべて選ぶ」問題は、当てはまるものを全部選んでから「決定」を押す。全部合っていないと正解にならない。<br>解説は終わってから見られる。'},
+ {h:'環境と注意',p:'静かな場所で、23分続けて時間をとる。スマホの通知は切っておく。<br>途中で戻ったりアプリを閉じたりすると、そのテストは記録されない。'}
+];
+function viewTop(){var h=X.bar('模擬テスト'),hs=hist().slice(-5).reverse();
+  GUIDE.forEach(function(g){h+='<section class="lesson"><h2>'+g.h+'</h2><div class="lp">'+g.p+'</div></section>';});
+  h+='<button class="next" data-act="mockstart">開始</button>';
   if(hs.length){h+='<div class="tbl-wrap mock-hist"><table class="tbl"><tr><th>日時</th><th>推定段階</th><th>正解</th></tr>';
     hs.forEach(function(x){h+='<tr><td>'+fmt(x.t)+'</td><td>'+(x.est==null?'-':x.est)+'</td><td>'+x.ok+' / '+x.n+'</td></tr>';});h+='</table></div>';}
   return h;}
