@@ -97,11 +97,11 @@ function render(){
   var h='';
   if(S.view==='menu'){
     h=bar('まいにちSPI',true)+
-    '<button class="item compact howto" data-act="howto"><span class="name">使い方</span>'+ICON.chev+'</button>'+
     '<button class="item primary" data-act="ai"><span class="ic" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg></span><span class="name">AIにお任せ教育モード</span>'+ICON.chev+'</button>'+
     '<button class="item" data-act="fields"><span class="ic blue" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></span><span class="name">分野別勉強モード</span>'+ICON.chev+'</button>'+
     '<button class="item" data-act="mock"><span class="ic orange" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg></span><span class="name">模擬テスト</span>'+ICON.chev+'</button>'+
     '<button class="item compact about" data-act="about"><span class="name">SPIとは</span>'+ICON.chev+'</button>'+
+    '<button class="item compact howto" data-act="howto"><span class="name">使い方</span>'+ICON.chev+'</button>'+
     '<div class="reset-row"><button class="reset-btn" data-act="reset">リセット</button></div>';
   } else if(S.view==='howto'){
     h=bar('使い方');

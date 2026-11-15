@@ -143,4 +143,4 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .reset-btn{background:none;border:1px solid var(--line);color:var(--off);font-size:12px;padding:6px 10px;cursor:pointer}
 .next.danger{background:var(--ng);margin-top:16px}
 .next.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line);margin-top:10px}
-.item.howto{margin-bottom:6px}
+.item.howto{margin-top:6px}
