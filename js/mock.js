@@ -19,7 +19,9 @@ function levels(){return LEVELS.filter(function(l){return fields(l).length;});}
    - 能力 a：指標4から。目標時間内の正解+0.4、目標より遅い正解は±0（ぎりぎりの正解では上がらない）、間違い・時間切れ−0.6（3〜7）。
    - 推論：a≥4.4 で直前2問が正解のとき cb（a≥6.4 なら指標7、ほかは指標6）、それ以外は1つ選ぶ推論（指標6）。 */
 /* 回答数の読み替え：本番の1画面（約2分半）はアプリの1問より重いので、本番の回答数×K をアプリの回答数とみなす（12→18、5→8）。 */
-var K=1.5,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
+/* 判定の数値は、偏差値どおりの実力の仮想受検者300人で、公表の段階別人数（7:2.3% 6:9.2% 5:23% 4:31% 3:23% 2:9.2% 1:2.3%）に近づくよう選んだ（app-tools/sim_population.js）。
+   g＝cbが出る能力、g7＝指標7のcb、c4/c5/c7＝段階4・5(6)・7に要るcbの回数、lo2/lo1＝cbなしのとき正解率がこれ未満なら2・1。 */
+var P=window.MOCK_P||{g:3.9,g7:6.3,c4:1,c5:3,c7:6,lo2:0.35,lo1:0.2},K=1.5,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
 function start(){T={a:4,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0};nextQ();}
 function limOf(c){return c.k==='m'?180:c.k==='e'?120:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
 function lastOk(n){var xs=T.ans.slice(-n);return xs.length===n&&xs.every(okOf);}
@@ -36,7 +38,7 @@ function pickItem(l,want,only){var fs=fields(l).filter(function(f){return !only|
 function nextQ(){if(T.i>=60||Date.now()-T.t0>=TOTAL){finish();return;}
   var l,w=null,k,only=null,slot=T.i===0?'t':(!fields(6).length?'c':T.a>=5.5&&T.i>=3?'i':PAT[(T.i-1)%PAT.length]);
   if(slot!=='i'){k='c';l=clamp(Math.round(T.a),3,5);while(l>3&&!fields(l).length)l--;if(slot==='t'){only=TBL;l=4;}}
-  else if(T.a>=4.4&&lastOk(2)){k='m';w=true;l=T.a>=6.4&&fields(7).length?7:6;}
+  else if(T.a>=P.g&&lastOk(2)){k='m';w=true;l=T.a>=P.g7&&fields(7).length?7:6;}
   else{k='e';w=false;l=6;}
   T.cur=pickItem(l,w,only);if(!T.cur){finish();return;}
   T.cur.k=X.isMulti(T.cur.it)?'m':k;if(T.cur.k==='m')T.cb++;
@@ -59,11 +61,11 @@ function stats(){var n=T.ans.length,inf=T.ans.filter(function(x){return x.k!=='c
   return {n:n,inf:inf,r:n?inf/n:0,cb:T.ans.filter(function(x){return x.k==='m';}).length};}
 function estimate(){var s=stats();if(!s.n)return null;
   if(s.n<=Math.round(5*K))return 3;
-  if(s.r>=0.5&&s.cb>=3&&s.n>=Math.round(12*K))return 7;
-  if(s.r>=0.5&&s.cb>=2)return 6;
-  if(s.cb>=2)return 5;
-  if(s.cb>=1)return 4;
-  return 3;}
+  if(s.r>=0.5&&s.cb>=P.c7&&s.n>=Math.round(12*K))return 7;
+  if(s.r>=0.5&&s.cb>=P.c5)return 6;
+  if(s.cb>=P.c5)return 5;
+  if(s.cb>=P.c4)return 4;
+  var rt=okRate(T.ans);return rt<P.lo1?1:rt<P.lo2?2:3;}
 function finish(){stop();var est=estimate(),ok=T.ans.filter(okOf).length;
   var st=stats();T.res={est:est,ok:ok,n:st.n,st:st};var h=hist();h.push({t:Date.now(),est:est,ok:ok,n:st.n});saveHist(h);
   T.open=-1;X.go('mockres');}
@@ -91,7 +93,7 @@ function viewRes(){var r=T.res,h=X.bar('模擬テスト');
       h+='<div class="result"><div class="q">'+it.q+'</div>'+(X.pickText(it,x.pick)?'<div class="calc"><b>選んだ答え</b>　'+X.pickText(it,x.pick)+'</div>':'')+
         '<div class="calc"><b>'+X.inwHead(it,x.f)+'</b>　'+X.inwText(it,x.f)+'</div>'+(it.fig?X.figHtml(it.fig):'')+'<div class="calc">'+(it.calc||'')+'</div><div class="calc"><b>答え</b>　'+(X.isMulti(it)?X.ansText(it):'ABCDE'[it.a]+'　'+it.c[it.a])+'</div></div>';}});
   return h+'</div><button class="next" data-act="mocktop">もどる</button>';}
-X.mockT=function(){return T;};
+X.mockT=function(){return T;};X.mockAns=function(i,to){answer(i,to);};X.mockLim=function(){return limOf(T.cur);};
 X.views.mock=viewTop;X.views.mockq=viewQ;X.views.mockres=viewRes;
 X.acts.mock=function(){X.go('mock');};
 X.acts.mockstart=function(){start();};
