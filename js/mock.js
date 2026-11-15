@@ -21,9 +21,9 @@ function levels(){return LEVELS.filter(function(l){return fields(l).length;});}
    - 全体23分、時間切れまで。1問目は表の読み取り（指標4）。以降は 推論→計算→計算→推論→計算→計算→推論→計算→推論→計算 をくり返し、
      θ≥5.5 のときは推論が続く（受検記録：高得点者は前半2〜3問の計算のあと推論ばかり）。推論は正誤に関係なく必ず出る。
    - 1問の制限時間（本番の推定）：計算 指標3・4は90秒、指標5と表は120秒、1つ選ぶ推論120秒、すべて選ぶ180秒。
-   - 推定段階＝最後の θ の整数部分（1〜7）。「すべて選ぶ」の回数は判定には使わない。結果として受検者報告の目安
+   - 推定段階＝最後の θ に sh（0.3）を足した整数部分（1〜7）。「すべて選ぶ」の回数は判定には使わない。結果として受検者報告の目安
      （7＝cb×3以上／6・5＝cb×2／4＝cb×1／3＝なし）に合うよう gc・g7 を仮想受検者で調整した（app-tools/sim_population.js）。 */
-var P=window.MOCK_P||{gc:5.0,g7:6.3,slow:0.7,cd:3,cd7:2},SL=1.7,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
+var P=window.MOCK_P||{gc:5.0,g7:6.3,slow:0.7,cd:3,cd7:2,sh:0.3},SL=1.7,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
 function start(){T={th:4,cd:0,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0};nextQ();}
 function limOf(c){return c.k==='m'?180:c.k==='e'?120:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
 function bOf(x){return x.k==='m'?(x.l===7?7:6.3):x.k==='e'?(x.l===7?6.3:5.5):x.l;}
@@ -69,7 +69,8 @@ function okOf(x){return x.r==='fast'||x.r==='slow';}
 function okRate(xs){return xs.length?xs.filter(okOf).length/xs.length:0;}
 function stats(){var n=T.ans.length,inf=T.ans.filter(function(x){return x.k!=='c';}).length;
   return {n:n,inf:inf,r:n?inf/n:0,cb:T.ans.filter(function(x){return x.k==='m';}).length,c7:T.ans.filter(function(x){return x.k==='m'&&x.l===7;}).length};}
-function estimate(){if(!T.ans.length)return null;return clamp(Math.floor(T.th),1,7);}
+/* 推定は平均に引き寄せられて低めに出るので、+sh してから切り捨てる（仮想受検者1000人で、高めと低めのずれが同数になる値） */
+function estimate(){if(!T.ans.length)return null;return clamp(Math.floor(T.th+P.sh),1,7);}
 function finish(){stop();var est=estimate(),ok=T.ans.filter(okOf).length;
   var st=stats();T.res={est:est,ok:ok,n:st.n,st:st};var h=hist();h.push({t:Date.now(),est:est,ok:ok,n:st.n});saveHist(h);
   T.open=-1;X.go('mockres');}
