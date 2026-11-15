@@ -21,10 +21,10 @@ function levels(){return LEVELS.filter(function(l){return fields(l).length;});}
 /* 回答数の読み替え：本番の1画面（約2分半）はアプリの1問より重いので、本番の回答数×K をアプリの回答数とみなす（12→18、5→8）。 */
 /* 判定の数値は、偏差値どおりの実力の仮想受検者300人で、公表の段階別人数（7:2.3% 6:9.2% 5:23% 4:31% 3:23% 2:9.2% 1:2.3%）に近づくよう選んだ（app-tools/sim_population.js）。
    g＝cbが出る能力、g7＝指標7のcb、c4/c5/c7＝段階4・5(6)・7に要るcbの回数、lo2/lo1＝cbなしのとき正解率がこれ未満なら2・1。 */
-var P=window.MOCK_P||{g:3.9,g7:6.3,c4:1,c5:3,c7:6,lo2:0.35,lo1:0.2},K=1.5,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
+var P=window.MOCK_P||{g:3.85,g7:6.3,c4:1,c5:2,c7:5,lo2:0.35,lo1:0.2},K=1.5,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
 function start(){T={a:4,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0};nextQ();}
 function limOf(c){return c.k==='m'?180:c.k==='e'?120:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
-function lastOk(n){var xs=T.ans.slice(-n);return xs.length===n&&xs.every(okOf);}
+function lastOk(n){var xs=T.ans.slice(-n);return xs.length===n&&xs.every(function(x){return x.r==='fast';});}
 function clamp(x,lo,hi){return Math.max(lo,Math.min(hi,x));}
 function pickItem(l,want,only){var fs=fields(l).filter(function(f){return !only||only.indexOf(f)>=0;});if(!fs.length)fs=fields(l);var k=T.fi[l]||0,tries=0;
   while(tries<fs.length*2){var f=fs[k%fs.length];k++;tries++;
@@ -41,7 +41,7 @@ function nextQ(){if(T.i>=60||Date.now()-T.t0>=TOTAL){finish();return;}
   else if(T.a>=P.g&&lastOk(2)){k='m';w=true;l=T.a>=P.g7&&fields(7).length?7:6;}
   else{k='e';w=false;l=6;}
   T.cur=pickItem(l,w,only);if(!T.cur){finish();return;}
-  T.cur.k=X.isMulti(T.cur.it)?'m':k;if(T.cur.k==='m')T.cb++;
+  T.cur.k=X.isMulti(T.cur.it)?'m':(k==='m'?'e':k);if(T.cur.k==='m')T.cb++;
   T.qt0=Date.now();T.sel=[];X.go('mockq');run();}
 function stop(){if(tick){clearInterval(tick);tick=null;}}
 function run(){stop();var lim=limOf(T.cur)*1000;
@@ -50,7 +50,10 @@ function run(){stop();var lim=limOf(T.cur)*1000;
     if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
     if(g)g.style.width=Math.max(0,100-(now-T.t0)/TOTAL*100)+'%';
     if(left<=0||now-T.t0>=TOTAL)answer(-1,true);},200);}
-function answer(i,to){stop();var c=T.cur,ok=!to&&X.isRight(c.it,i),sec=Math.round((Date.now()-T.qt0)/1000),tg=X.targetOf(c.it,c.l),r=X.classify(ok,sec,tg,to);
+function answer(i,to){stop();
+  /* 全体の時間切れで打ち切られた最後の1問は、答えていないので数えない */
+  if(to&&Date.now()-T.t0>=TOTAL&&Date.now()-T.qt0<limOf(T.cur)*1000){finish();return;}
+  var c=T.cur,ok=!to&&X.isRight(c.it,i),sec=Math.round((Date.now()-T.qt0)/1000),tg=X.targetOf(c.it,c.l),r=X.classify(ok,sec,tg,to);
   T.ans.push({f:c.f,l:c.l,k:c.k,it:c.it,pick:i,r:r,sec:sec});
   X.logAnswer({t:Date.now(),f:c.f,l:c.l,s:'mock',q:X.qid(c.it),r:r,sec:sec,tg:tg,pick:i,ai:'mock'});
   T.a=clamp(T.a+(r==='fast'?0.4:r==='slow'?0:-0.6),3,7);
@@ -58,10 +61,9 @@ function answer(i,to){stop();var c=T.cur,ok=!to&&X.isRight(c.it,i),sec=Math.roun
 function okOf(x){return x.r==='fast'||x.r==='slow';}
 function okRate(xs){return xs.length?xs.filter(okOf).length/xs.length:0;}
 function stats(){var n=T.ans.length,inf=T.ans.filter(function(x){return x.k!=='c';}).length;
-  return {n:n,inf:inf,r:n?inf/n:0,cb:T.ans.filter(function(x){return x.k==='m';}).length};}
+  return {n:n,inf:inf,r:n?inf/n:0,cb:T.ans.filter(function(x){return x.k==='m';}).length,c7:T.ans.filter(function(x){return x.k==='m'&&x.l===7;}).length};}
 function estimate(){var s=stats();if(!s.n)return null;
-  if(s.n<=Math.round(5*K))return 3;
-  if(s.r>=0.5&&s.cb>=P.c7&&s.n>=Math.round(12*K))return 7;
+  if(s.r>=0.5&&s.cb>=P.c7&&s.c7>=1&&s.n>=Math.round(12*K))return 7;
   if(s.r>=0.5&&s.cb>=P.c5)return 6;
   if(s.cb>=P.c5)return 5;
   if(s.cb>=P.c4)return 4;
