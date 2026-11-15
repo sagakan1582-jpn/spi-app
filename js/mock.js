@@ -11,20 +11,27 @@ function fields(l){return (CURRICULUM[l]||[]).filter(function(f){return BANK[f]&
 function levels(){return LEVELS.filter(function(l){return fields(l).length;});}
 
 /* 本番（テストセンター）の非言語をまねる。根拠は README「模擬テスト」（受検者の報告・ガイダンス資料）。
-   指標の目安：7＝推論5割以上・cb×3（回答数12以上）／6＝推論5割以上・cb×2／5＝推論5割未満・cb×2／4＝cb×1／3＝cbなし（回答数5以下）。cb＝「すべて選ぶ」。
-   - 全体23分、時間切れまで。1問目は表の読み取り。そのあとは計算と推論がまざって出る（受検報告をもとに 推論→計算→計算→推論→計算→計算→推論→計算→推論→計算 をくり返す）。
-     出来がよい（a≥5.5）ときは推論が続く（高得点者は前半2〜3問の計算のあと推論ばかり）。推論は正誤に関係なく必ず出る。
+   しくみ（IRTの考え方）：
+   - 能力 θ を、これまでの全回答から推定する（各問題に難しさ b を付け、正解率 1/(1+e^(−1.7(θ−b))) とおいたときの事後平均）。
+     難しい問題に正解すると大きく上がり、易しい問題を間違えると大きく下がる。
+     b：計算＝その指標（3〜5）、1つ選ぶ推論＝5.5、すべて選ぶ（指標6）＝6.3、すべて選ぶ（指標7）＝7。
+     目標時間より遅い正解は「b−slow の問題に正解した」とみなす（ぎりぎりの正解では上の段階の証拠にならない）。時間切れは不正解。
+   - 次の問題は θ に合わせる：計算は θ を四捨五入した指標3〜5。推論は θ≥gc で「すべて選ぶ」（θ≥g7 なら指標7）、それ以外は1つ選ぶ推論（θ≥g7 なら指標7）。
+     「すべて選ぶ」のあとは推論 cd 問（θ≥g7 なら cd7 問）を1つ選ぶ形式にする（cbは毎回ではなく、ときどき出る）。
+   - 全体23分、時間切れまで。1問目は表の読み取り（指標4）。以降は 推論→計算→計算→推論→計算→計算→推論→計算→推論→計算 をくり返し、
+     θ≥5.5 のときは推論が続く（受検記録：高得点者は前半2〜3問の計算のあと推論ばかり）。推論は正誤に関係なく必ず出る。
    - 1問の制限時間（本番の推定）：計算 指標3・4は90秒、指標5と表は120秒、1つ選ぶ推論120秒、すべて選ぶ180秒。
-     目標時間（講座の60〜90秒）は「速い・遅い」の判定だけに使う。
-   - 能力 a：指標4から。目標時間内の正解+0.4、目標より遅い正解は±0（ぎりぎりの正解では上がらない）、間違い・時間切れ−0.6（3〜7）。
-   - 推論：a≥4.4 で直前2問が正解のとき cb（a≥6.4 なら指標7、ほかは指標6）、それ以外は1つ選ぶ推論（指標6）。 */
-/* 回答数の読み替え：本番の1画面（約2分半）はアプリの1問より重いので、本番の回答数×K をアプリの回答数とみなす（12→18、5→8）。 */
-/* 判定の数値は、偏差値どおりの実力の仮想受検者300人で、公表の段階別人数（7:2.3% 6:9.2% 5:23% 4:31% 3:23% 2:9.2% 1:2.3%）に近づくよう選んだ（app-tools/sim_population.js）。
-   g＝cbが出る能力、g7＝指標7のcb、c4/c5/c7＝段階4・5(6)・7に要るcbの回数、lo2/lo1＝cbなしのとき正解率がこれ未満なら2・1。 */
-var P=window.MOCK_P||{g:3.85,g7:6.3,c4:1,c5:2,c7:5,lo2:0.35,lo1:0.2},K=1.5,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
-function start(){T={a:4,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0};nextQ();}
+   - 推定段階＝最後の θ の整数部分（1〜7）。「すべて選ぶ」の回数は判定には使わない。結果として受検者報告の目安
+     （7＝cb×3以上／6・5＝cb×2／4＝cb×1／3＝なし）に合うよう gc・g7 を仮想受検者で調整した（app-tools/sim_population.js）。 */
+var P=window.MOCK_P||{gc:5.0,g7:6.3,slow:0.7,cd:3,cd7:2},SL=1.7,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
+function start(){T={th:4,cd:0,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0};nextQ();}
 function limOf(c){return c.k==='m'?180:c.k==='e'?120:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
-function lastOk(n){var xs=T.ans.slice(-n);return xs.length===n&&xs.every(function(x){return x.r==='fast';});}
+function bOf(x){return x.k==='m'?(x.l===7?7:6.3):x.k==='e'?(x.l===7?6.3:5.5):x.l;}
+function estTheta(){var num=0,den=0;
+  for(var t=0;t<=8.5;t+=0.05){var w=Math.exp(-Math.pow(t-4.5,2)/(2*1.25*1.25));
+    T.ans.forEach(function(x){var b=bOf(x)-(x.r==='slow'?P.slow:0),p=1/(1+Math.exp(-SL*(t-b)));w*=okOf(x)?p:1-p;});
+    num+=w*t;den+=w;}
+  return den?num/den:4;}
 function clamp(x,lo,hi){return Math.max(lo,Math.min(hi,x));}
 function pickItem(l,want,only){var fs=fields(l).filter(function(f){return !only||only.indexOf(f)>=0;});if(!fs.length)fs=fields(l);var k=T.fi[l]||0,tries=0;
   while(tries<fs.length*2){var f=fs[k%fs.length];k++;tries++;
@@ -36,10 +43,10 @@ function pickItem(l,want,only){var fs=fields(l).filter(function(f){return !only|
     if(keep){T.fi[l]=k;T.used.push(keep.src);return {f:f,l:l,it:keep.it};}}
   return null;}
 function nextQ(){if(T.i>=60||Date.now()-T.t0>=TOTAL){finish();return;}
-  var l,w=null,k,only=null,slot=T.i===0?'t':(!fields(6).length?'c':T.a>=5.5&&T.i>=3?'i':PAT[(T.i-1)%PAT.length]);
-  if(slot!=='i'){k='c';l=clamp(Math.round(T.a),3,5);while(l>3&&!fields(l).length)l--;if(slot==='t'){only=TBL;l=4;}}
-  else if(T.a>=P.g&&lastOk(2)){k='m';w=true;l=T.a>=P.g7&&fields(7).length?7:6;}
-  else{k='e';w=false;l=6;}
+  var l,w=null,k,only=null,slot=T.i===0?'t':(!fields(6).length?'c':T.th>=5.5&&T.i>=3?'i':PAT[(T.i-1)%PAT.length]);
+  if(slot!=='i'){k='c';l=clamp(Math.round(T.th),3,5);while(l>3&&!fields(l).length)l--;if(slot==='t'){only=TBL;l=4;}}
+  else if(T.th>=P.gc&&T.cd<=0){k='m';w=true;l=T.th>=P.g7&&fields(7).length?7:6;T.cd=T.th>=P.g7?P.cd7:P.cd;}
+  else{k='e';w=false;l=T.th>=P.g7&&fields(7).length?7:6;T.cd--;}
   T.cur=pickItem(l,w,only);if(!T.cur){finish();return;}
   T.cur.k=X.isMulti(T.cur.it)?'m':(k==='m'?'e':k);if(T.cur.k==='m')T.cb++;
   T.qt0=Date.now();T.sel=[];X.go('mockq');run();}
@@ -56,18 +63,13 @@ function answer(i,to){stop();
   var c=T.cur,ok=!to&&X.isRight(c.it,i),sec=Math.round((Date.now()-T.qt0)/1000),tg=X.targetOf(c.it,c.l),r=X.classify(ok,sec,tg,to);
   T.ans.push({f:c.f,l:c.l,k:c.k,it:c.it,pick:i,r:r,sec:sec});
   X.logAnswer({t:Date.now(),f:c.f,l:c.l,s:'mock',q:X.qid(c.it),r:r,sec:sec,tg:tg,pick:i,ai:'mock'});
-  T.a=clamp(T.a+(r==='fast'?0.4:r==='slow'?0:-0.6),3,7);
+  T.th=estTheta();
   T.i++;nextQ();}
 function okOf(x){return x.r==='fast'||x.r==='slow';}
 function okRate(xs){return xs.length?xs.filter(okOf).length/xs.length:0;}
 function stats(){var n=T.ans.length,inf=T.ans.filter(function(x){return x.k!=='c';}).length;
   return {n:n,inf:inf,r:n?inf/n:0,cb:T.ans.filter(function(x){return x.k==='m';}).length,c7:T.ans.filter(function(x){return x.k==='m'&&x.l===7;}).length};}
-function estimate(){var s=stats();if(!s.n)return null;
-  if(s.r>=0.5&&s.cb>=P.c7&&s.c7>=1&&s.n>=Math.round(12*K))return 7;
-  if(s.r>=0.5&&s.cb>=P.c5)return 6;
-  if(s.cb>=P.c5)return 5;
-  if(s.cb>=P.c4)return 4;
-  var rt=okRate(T.ans);return rt<P.lo1?1:rt<P.lo2?2:3;}
+function estimate(){if(!T.ans.length)return null;return clamp(Math.floor(T.th),1,7);}
 function finish(){stop();var est=estimate(),ok=T.ans.filter(okOf).length;
   var st=stats();T.res={est:est,ok:ok,n:st.n,st:st};var h=hist();h.push({t:Date.now(),est:est,ok:ok,n:st.n});saveHist(h);
   T.open=-1;X.go('mockres');}
