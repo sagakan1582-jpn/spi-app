@@ -52,7 +52,7 @@ function recStage(f,l){for(var k=0;k<STAGES.length;k++)if(!cleared(f,l,STAGES[k]
 /* ===== 画面 ===== */
 var titleV=document.getElementById('title'), appV=document.getElementById('app'), inner=document.getElementById('inner');
 var S={view:'menu'};
-var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'menu',reset:'menu',howto:'menu',ailesson:'menu',aicheck:'menu',mock:'menu',mockq:'mock',mockres:'mock'};
+var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'aihome',reset:'menu',howto:'menu',ailesson:'aihome',aicheck:'aihome',aihome:'menu',aiplace:'aihome',aiintro:'aihome',aiexam:'aihome',mock:'menu',mockq:'mock',mockres:'mock'};
 /* AIモード（js/ai.js）が使う共通の部品 */
 var SPI=window.SPI={views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
   inner:function(){return inner;},logAnswer:function(r){logAnswer(r);},classify:classify,targetOf:targetOf,qid:qid,

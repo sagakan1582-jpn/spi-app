@@ -146,3 +146,19 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .next.danger{background:var(--ng);margin-top:16px}
 .next.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line);margin-top:10px}
 .item.howto{margin-top:6px}
+
+/* AIモード（ゲーム型） */
+.sup{display:flex;gap:10px;align-items:flex-start;margin:4px 0 16px}
+.sup-ic{flex-shrink:0;width:44px;height:44px;background:var(--rec-bg);color:var(--accent);display:flex;align-items:center;justify-content:center}
+.sup-b{flex:1;border:2px solid var(--accent);padding:10px 12px;font-size:15px;line-height:1.7}
+.sup-b b{color:var(--accent)}
+.ai-lv{display:flex;flex-direction:column;align-items:center;padding:8px 0 16px}
+.ai-lv-l{font-size:14px;font-weight:700}
+.ai-lv-n{font-size:64px;font-weight:800;line-height:1;color:var(--accent)}
+.ai-prog-l{display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-bottom:6px}
+.ai-prog{height:10px;background:var(--dot);margin-bottom:16px}
+.ai-prog i{display:block;height:100%;background:var(--ok)}
+.ai-tbl td{text-align:center;font-weight:700}
+.ai-tbl td.ai-ok{color:var(--ok)} .ai-tbl td.ai-ng{color:var(--ng)}
+.ai-steps{margin:0 0 16px;padding-left:22px;line-height:2;font-size:15px}
+.ai-steps li.done{color:var(--off)} .ai-steps li.now{color:var(--accent);font-weight:800}
