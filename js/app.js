@@ -144,7 +144,7 @@ function render(){
   else if(SPI.views[S.view]){h=SPI.views[S.view]();}
   inner.innerHTML=h;
 }
-function lessonHtml(f,l){var h='';(LESSON[f]&&LESSON[f][l]||[]).forEach(function(sec){
+function lessonHtml(f,l){var h='';((typeof ESSENCE!=='undefined'&&ESSENCE[f])||[]).concat(LESSON[f]&&LESSON[f][l]||[]).forEach(function(sec){
   h+='<section class="lesson"><h2>'+sec.h+'</h2>'+(sec.q?'<div class="q ex">'+sec.q+'</div>':'')+(sec.p?'<div class="lp">'+sec.p+'</div>':'')+(sec.fig?figHtml(sec.fig):'')+(sec.p2?'<div class="lp">'+sec.p2+'</div>':'')+'</section>';});return h;}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function instPool(p){return p.map(inst).filter(function(x){return x;});}
