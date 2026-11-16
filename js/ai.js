@@ -97,18 +97,16 @@ function update(item,r){if(item.type==='place'){placeUpdate(item,r);save();retur
     else{s.iv=0;s.due=now+DAY;s.weak=1;s.m=Math.min(s.m,2);s.fh=[];}
     save();return;}
   /* new / weak */
-  var g=STAGES[item.stIdx],last=STAGES.length-1,FH={win:6,need:4};
+  var g=STAGES[item.stIdx],last=STAGES.length-1;
   if(item.stIdx===s.st)s.h=(s.h||[]).concat([ok]).slice(-g.win);
-  if(item.stIdx===last&&s.m>=2)s.fh=(s.fh||[]).concat([r==='fast']).slice(-FH.win);
   if(ok){s.wr=0;
     if(item.stIdx===s.st){
       if(stagePassed(s.h,g)){Q.passH=s.h;s.h=[];X.markCleared(item.f,item.l,item.key);
-        Q.msg='「'+STAGES[item.stIdx].name+'」合格！'+(item.stIdx<last?'次は「'+STAGES[item.stIdx+1].name+'」。'+STAGES[item.stIdx+1].win+'問中'+STAGES[item.stIdx+1].need+'問正解で合格。':'あとは時間内に速く正確に解けるようにしよう。');
+        Q.msg='「'+STAGES[item.stIdx].name+'」合格！'+(item.stIdx<last?'次は「'+STAGES[item.stIdx+1].name+'」。'+STAGES[item.stIdx+1].win+'問中'+STAGES[item.stIdx+1].need+'問正解で合格。':'');
         if(item.stIdx===1)s.m=Math.max(s.m,1);
-        if(item.stIdx<last)s.st++;else s.m=Math.max(s.m,2);}}
+        /* 実践②に合格したら習得（速さを上げる段階はなし。2026-11-17 ユーザー指示） */
+        if(item.stIdx<last)s.st++;else if(s.m<3){s.m=3;s.iv=0;s.due=now+DAY;s.weak=0;Q.msg='「'+item.f+'」指標'+item.l+'を習得！';}}}
     if(r==='slow'&&s.m>=1)s.weak=1;
-    if(item.stIdx===last&&s.m>=2&&r==='fast'){s.weak=0;
-      if(stagePassed(s.fh,FH)&&s.m<3){s.m=3;s.iv=0;s.due=now+DAY;Q.msg='「'+item.f+'」指標'+item.l+'を習得！';}}
     if(r==='fast'&&item.type==='weak'&&s.m<2)s.weak=0;
   }else{s.wr++;s.weak=1;
     if(s.wr>=2&&s.st>1){s.st--;s.wr=0;s.h=[];}
@@ -140,7 +138,7 @@ function startTimer(){stopTimer();Q.t0=Date.now();var item=Q.item;if(!item||item
 /* 段階制の問題（new/weak）は B案のヘッダー：段階番号・分野・段階名・連続正解 */
 var ST_SHORT=['解き方','概念','練習','実践①','実践②'];
 function staged(item){return item&&(item.type==='new'||item.type==='weak')&&item.stIdx>0;}
-function streakOf(item){var s=st(item.f,item.l),last=STAGES.length-1,g=STAGES[item.stIdx],fin=item.stIdx===last&&s.m>=2,
+function streakOf(item){var s=st(item.f,item.l),last=STAGES.length-1,g=STAGES[item.stIdx],fin=false,
   h=fin?(s.fh||[]):(item.stIdx===s.st?(s.h||[]):[]);
   if(Q.picked!=null&&Q.full)h=Q.passH||h;/* 合格した直後は合格したときの記録を見せる */
   return {h:h.slice(-g.win),g:fin?{win:6,need:4}:g};}
@@ -152,7 +150,7 @@ function stageHead(item){var k=streakOf(item);
 function header(item){if(staged(item))return stageHead(item);return X.bar(item.type==='check'?'昇格試験 '+item.ci+'/'+item.cn:item.type==='place'?'実力診断 '+item.pn:item.f+'・'+STAGES[item.stIdx].name);}
 var SUP_IC='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg>';
 function sup(t){return '<div class="sup"><span class="sup-ic" aria-hidden="true">'+SUP_IC+'</span><div class="sup-b">'+t+'</div></div>';}
-function stName(f,l){var s=st(f,l);return s.m>=3?'習得':s.m===2?'仕上げ':s.st>1||s.m>=1?'学習中':'未学習';}
+function stName(f,l){var s=st(f,l);return s.m>=3?'習得':s.st>1||s.m>=1?'学習中':'未学習';}
 function viewHome(){var l=A.level,fs=order(l),done=fs.filter(function(f){return st(f,l).m>=3;}).length,wk=weakList(l),h=X.bar('AIにお任せ教育モード'),msg,btn;
   if(!A.placed){msg='はじめまして！まずは<b>あなたの実力を測ります</b>。分野ごとに本番と同じ形の問題を出すので、時間内に解いてね。';btn='実力診断を始める';}
   else if(ready(l)){msg='指標'+l+'の分野をすべて習得したね！<b>昇格試験</b>に合格すると、指標'+(nextLevel(l)||l)+'に上がれるよ。';btn='昇格試験を受ける';}
@@ -226,7 +224,7 @@ function answer(i,to){stopTimer();var item=Q.item,it=item.it,ok=!to&&X.isRight(i
   A.cur=null;
   var s0=item.f?st(item.f,item.l):null,st0=s0&&s0.st,m0=s0&&s0.m;
   update(item,Q.r);
-  Q.full=!!(s0&&ok&&staged(item)&&(s0.st>st0||(item.stIdx===STAGES.length-1&&m0<2&&s0.m>=2)));
+  Q.full=!!(s0&&ok&&staged(item)&&(s0.st>st0||(item.stIdx===STAGES.length-1&&m0<3&&s0.m>=3)));
   /* 型チェックは出さない（2026-11-17 ユーザー指示で削除） */
 
   save();
