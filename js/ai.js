@@ -118,7 +118,7 @@ function update(item,r){if(item.type==='place'){placeUpdate(item,r);save();retur
 
 /* ===== 3ステップ診断（既存の問題から小問を作る） ===== */
 function uniq(a){var o=[];a.forEach(function(x){if(x&&o.indexOf(x)<0)o.push(x);});return o;}
-/* 小問は js/kata.js が同じ問題の言葉・数字の位置・計算を崩して作る（他の分野・他の問題は混ぜない） */
+/* 型チェックは削除（2026-11-17）。buildDiag は空を返す */
 function buildDiag(item){return window.KATA?KATA.steps(item.it,item.f):[];}
 function diagResult(step,ok){var item=Q.diag.item,s=st(item.f,item.l);
   X.logAnswer({t:Date.now(),f:item.f,l:item.l,s:'diag'+(step.k+1),q:X.qid(item.it),r:ok?'fast':'wrong',sec:0,tg:0,pick:Q.diag.pick});
@@ -205,7 +205,7 @@ function show(){Q.picked=null;Q.sel=[];Q.timeout=false;Q.diagShow=false;Q.showMs
   if(Q.placeDone){Q.placeDone=false;X.go('aiplace');return;}
   if(Q.reLesson){var rl=Q.reLesson;Q.reLesson=null;Q.item={type:'lesson',f:rl.f,l:rl.l};X.go('ailesson');return;}
   /* 前回の続き：型チェックの途中、または答える前の問題 */
-  if(A.diag){Q.diag=A.diag;Q.diag.pending=false;Q.diagShow=true;X.go('ai');return;}
+  if(A.diag){A.diag=null;Q.diag=null;save();}
   if(A.cur){Q.item=A.cur;present();return;}
   if(!A.pl&&!A.drill&&ready(A.level)){X.go('aiexam');return;}
   Q.item=next();
@@ -224,8 +224,8 @@ function answer(i,to){stopTimer();var item=Q.item,it=item.it,ok=!to&&X.isRight(i
   var s0=item.f?st(item.f,item.l):null,st0=s0&&s0.st,m0=s0&&s0.m;
   update(item,Q.r);
   Q.full=!!(s0&&ok&&staged(item)&&(s0.st>st0||(item.stIdx===STAGES.length-1&&m0<2&&s0.m>=2)));
-  /* 型チェックは実践の問題で間違えたときだけ（正解したときは出さない。2026-11-16 ユーザー指示） */
-  if(Q.r==='wrong'&&item.type!=='check'&&item.type!=='diag0'&&item.type!=='place'&&item.stIdx>=3){var steps=buildDiag(item);if(steps.length){Q.diag={item:item,steps:steps,i:0,pick:null,pending:true};A.diag=Q.diag;}}
+  /* 型チェックは出さない（2026-11-17 ユーザー指示で削除） */
+
   save();
   X.render();var r=X.inner().querySelector('.result');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'});}
 
