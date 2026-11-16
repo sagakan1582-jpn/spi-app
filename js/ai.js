@@ -136,7 +136,17 @@ function startTimer(){stopTimer();Q.t0=Date.now();var item=Q.item;if(!item||item
     var b=document.getElementById('aibar'),left=1-(Date.now()-Q.t0)/lim;
     if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
     if(left<=0&&item.timer==='strict'){stopTimer();answer(-1,true);}},200);}
-function header(item){return X.bar(item.type==='check'?'昇格試験 '+item.ci+'/'+item.cn:item.type==='place'?'実力診断 '+item.pn:item.f+'・'+STAGES[item.stIdx].name);}
+/* 段階制の問題（new/weak）は B案のヘッダー：段階番号・分野・段階名・連続正解 */
+var ST_SHORT=['解き方','概念','練習','実践①','実践②'];
+function staged(item){return item&&(item.type==='new'||item.type==='weak')&&item.stIdx>0;}
+function streakOf(item){var s=st(item.f,item.l),last=STAGES.length-1,need=STAGES[item.stIdx].need||3,n=(item.stIdx===last&&s.m>=2)?s.fs:(item.stIdx===s.st?s.sk:0);
+  if(Q.picked!=null&&Q.full)n=need;/* 合格した直後は全部うめて見せる */
+  return {n:Math.min(n,need),need:need};}
+function boxes(n,need,big){var h='<span class="cp-boxes'+(big?' big':'')+'" role="img" aria-label="連続正解 '+n+' / '+need+'">';for(var i=0;i<need;i++)h+='<i class="'+(i<n?'on':'')+'"></i>';return h+'</span>';}
+function stageHead(item){var k=streakOf(item);
+  return '<div class="bar"><button class="back" data-act="back" aria-label="もどる">'+X.icon('back')+'</button><span class="cp-num">'+(item.stIdx+1)+'</span><span class="cp-name"><span>'+item.f+'</span><b>'+STAGES[item.stIdx].name+'</b></span></div>'+
+    '<div class="cp-streak"><b>連続正解</b>'+boxes(k.n,k.need)+'</div>';}
+function header(item){if(staged(item))return stageHead(item);return X.bar(item.type==='check'?'昇格試験 '+item.ci+'/'+item.cn:item.type==='place'?'実力診断 '+item.pn:item.f+'・'+STAGES[item.stIdx].name);}
 var SUP_IC='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg>';
 function sup(t){return '<div class="sup"><span class="sup-ic" aria-hidden="true">'+SUP_IC+'</span><div class="sup-b">'+t+'</div></div>';}
 function stName(f,l){var s=st(f,l);return s.m>=3?'習得':s.m===2?'仕上げ':s.st>1||s.m>=1?'学習中':'未学習';}
@@ -155,11 +165,11 @@ function viewPlace(){var l=A.level,wk=weakList(l),h=X.bar('実力診断の結果
   h+='<div class="ai-lv"><div class="ai-lv-l">指標レベル</div><div class="ai-lv-n">'+l+'</div></div>';
   if(wk.length){h+='<div class="tbl-wrap"><table class="tbl ai-tbl"><tr><th colspan="2">苦手な分野</th></tr>';wk.forEach(function(f,i){h+='<tr><th>'+(i+1)+'</th><td class="ai-ng">'+f+'</td></tr>';});h+='</table></div>';}
   return h+'<button class="next" data-act="aigo">学習を始める</button>';}
-function viewIntro(){var it=Q.pending,s=st(it.f,it.l),k=Math.max(1,s.st),wk=weakList(it.l).indexOf(it.f)>=0,h=X.bar(it.f+'・指標'+it.l);
-  var steps=STAGES.map(function(g,i){return '<li class="'+(i<k&&X.cleared(it.f,it.l,g.key)?'done':i===(it.type==='lesson'?0:k)?'now':'')+'">'+g.name+(g.need?'（'+g.need+'問続けて正解）':'')+'</li>';}).join('');
-  h+=sup('ここからは<b>「'+it.f+'」</b>'+(wk?'（苦手）':'')+'を強化するよ！'+(it.type==='lesson'?'まず解き方を読んで、図のどこに数字が入るかを覚えよう。':'「'+STAGES[k].name+'」から続けよう。'));
-  h+='<ol class="ai-steps">'+steps+'</ol>';
-  return h+'<button class="next" data-act="aiintrogo">始める</button>';}
+function viewIntro(){var it=Q.pending,k=it.type==='lesson'?0:it.stIdx,h=X.bar(it.f+'・指標'+it.l);
+  h+='<div class="cp"><div class="cp-big"><span class="cp-n">'+(k+1)+'</span><span class="cp-of">/ '+STAGES.length+'</span></div><div class="cp-title">'+STAGES[k].name+'</div>';
+  h+='<div class="cp-bar">'+STAGES.map(function(g,i){return '<div class="'+(i<k?'done':i===k?'now':'')+'"><i></i><span>'+ST_SHORT[i]+'</span></div>';}).join('')+'</div>';
+  if(STAGES[k].need)h+='<div class="cp-streak big"><b>連続正解</b>'+boxes(0,STAGES[k].need,true)+'</div>';
+  return h+'</div><button class="next" data-act="aiintrogo">はじめる</button>';}
 function viewExam(){var l=A.level,h=X.bar('昇格試験');
   h+=sup('指標'+l+'の全分野から<b>10問</b>出すよ。本番と同じタイマーで、<b>8問以上</b>時間内に正解すれば合格。合格すると指標'+(nextLevel(l)||l)+'に上がる！');
   return h+'<button class="next" data-act="aiexamgo">試験を始める</button>';}
@@ -200,7 +210,9 @@ function show(){Q.picked=null;Q.sel=[];Q.timeout=false;Q.diagShow=false;Q.showMs
   if(!A.pl&&!A.drill&&ready(A.level)){X.go('aiexam');return;}
   Q.item=next();
   /* 新しい分野に入るときは、何を学ぶかを先に説明する */
-  if(Q.item&&(Q.item.type==='lesson'||Q.item.type==='new')&&A.focus!==Q.item.f+'|'+Q.item.l){A.focus=Q.item.f+'|'+Q.item.l;save();Q.pending=Q.item;X.go('aiintro');return;}
+  /* 段階が変わるたびに区切り画面（B案）を出す。分野に入るとき・合格して次の段階へ進むとき・戻るとき */
+  if(Q.item&&(Q.item.type==='lesson'||Q.item.type==='new')){var ck=Q.item.f+'|'+Q.item.l+'|'+(Q.item.type==='lesson'?0:Q.item.stIdx);
+    if(A.cp!==ck){A.cp=ck;A.focus=Q.item.f+'|'+Q.item.l;save();if(Q.showMsg&&Q.showMsg.indexOf('合格！')>=0)Q.showMsg=null;Q.pending=Q.item;X.go('aiintro');return;}}
   if(Q.item&&Q.item.type==='lesson'){X.go('ailesson');return;}
   present();}
 function present(){if(Q.item){Q.lastQ=Q.item.it.src||Q.item.it;A.cur=Q.item;save();}X.go('ai');startTimer();}
@@ -209,7 +221,9 @@ function answer(i,to){stopTimer();var item=Q.item,it=item.it,ok=!to&&X.isRight(i
   /* 本番タイマーでないときは「遅い」で弱点にしすぎないよう、目安を超えたら slow とだけ記録する */
   X.logAnswer({t:Date.now(),f:item.f,l:item.l,s:item.key,q:X.qid(it),r:Q.r,sec:sec,tg:tg,pick:i,ai:item.type});
   A.cur=null;
+  var s0=item.f?st(item.f,item.l):null,st0=s0&&s0.st,m0=s0&&s0.m;
   update(item,Q.r);
+  Q.full=!!(s0&&ok&&staged(item)&&(s0.st>st0||(item.stIdx===STAGES.length-1&&m0<2&&s0.m>=2)));
   /* 型チェックは実践の問題で間違えたときだけ（正解したときは出さない。2026-11-16 ユーザー指示） */
   if(Q.r==='wrong'&&item.type!=='check'&&item.type!=='diag0'&&item.type!=='place'&&item.stIdx>=3){var steps=buildDiag(item);if(steps.length){Q.diag={item:item,steps:steps,i:0,pick:null,pending:true};A.diag=Q.diag;}}
   save();

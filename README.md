@@ -11,7 +11,7 @@ GitHub Pages（スマホ用）: https://sagakan1582-jpn.github.io/spi-app/ （�
 | style.css | 見た目（白背景・黒文字、色は推奨・正誤・?だけ） | まれ |
 | js/config.js | 段階（解き方→概念→練習→実践×2）と合格の連続正解数、指標、学ぶ順番（CURRICULUM）、「SPIとは」の文章、カルノー表の補助関数 | ときどき |
 | js/kata.js | AIモードの型チェックの小問（同じ問題の型を崩した誤答）を作る | まれ |
-| js/ai.js | AIにお任せ教育モード（次の1問の決め方、習得5段階、復習、3ステップ診断、指標チェック）。記録は localStorage の mainichi-spi-ai-v1 | まれ |
+| js/ai.js | AIにお任せ教育モード（次の1問の決め方、習得5段階、復習、3ステップ診断、指標チェック）。段階が変わるたびに区切り画面（B案：大きな段階番号・5段階バー・連続正解の四角）、段階の問題はヘッダーに段階番号と連続正解。記録は localStorage の mainichi-spi-ai-v1 | まれ |
 | js/mock.js | 模擬テスト（23分・計算と推論がまざる・cbの回数等で推定段階）。履歴は localStorage の mainichi-spi-mock-v1 | まれ |
 | js/app.js | 画面の切り替え、出題、連続正解、進み具合の保存（localStorage） | まれ |
 | data/分野_指標.js | 1分野×1指標の「解き方」（LESSON）と問題（BANK） | **いちばん触る** |

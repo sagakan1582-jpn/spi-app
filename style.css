@@ -162,3 +162,25 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .ai-tbl td.ai-ok{color:var(--ok)} .ai-tbl td.ai-ng{color:var(--ng)}
 .ai-steps{margin:0 0 16px;padding-left:22px;line-height:2;font-size:15px}
 .ai-steps li.done{color:var(--off)} .ai-steps li.now{color:var(--accent);font-weight:800}
+
+/* AIモード：段階の区切り画面とヘッダー（B案 大きな番号） */
+.cp{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding-block:12px}
+.cp-big{display:flex;align-items:flex-end;gap:8px}
+.cp-n{width:120px;height:120px;background:var(--accent);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:800}
+.cp-of{font-size:22px;font-weight:800;color:var(--muted)}
+.cp-title{font-size:26px;font-weight:800;text-align:center}
+.cp-bar{width:100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:8px}
+.cp-bar div{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#6B6B6B}
+.cp-bar i{width:100%;height:10px;background:#E4E4E4}
+.cp-bar .done{color:var(--fg)} .cp-bar .done i{background:var(--ink)}
+.cp-bar .now{color:var(--accent);font-weight:800} .cp-bar .now i{background:var(--accent)}
+.cp-streak{border:1.5px solid var(--line);padding:12px 14px;display:flex;align-items:center;gap:12px;margin:-4px 0 14px;font-size:14px}
+.cp-streak.big{width:100%;box-sizing:border-box;padding:16px 18px;margin:12px 0 0;font-size:16px}
+.cp-boxes{display:flex;gap:6px;margin-left:auto}
+.cp-boxes i{width:26px;height:26px;border:2px solid var(--ink);box-sizing:border-box}
+.cp-boxes i.on{background:var(--ok);border-color:var(--ok)}
+.cp-boxes.big i{width:22px;height:22px}
+.cp-num{width:44px;height:44px;background:var(--accent);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;flex-shrink:0}
+.cp-name{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.cp-name span{font-size:13px;font-weight:700;color:var(--muted)}
+.cp-name b{font-size:16px;font-weight:800}
