@@ -21,7 +21,7 @@ function save(){var j;try{j=JSON.stringify(A,function(k,v){return k==='src'?unde
 function fields(l){return (CURRICULUM[l]||[]).filter(function(f){return BANK[f]&&BANK[f][l];});}
 function firstLevel(){for(var i=0;i<LEVELS.length;i++)if(fields(LEVELS[i]).length)return LEVELS[i];return 3;}
 function nextLevel(l){for(var i=0;i<LEVELS.length;i++)if(LEVELS[i]>l&&fields(LEVELS[i]).length)return LEVELS[i];return null;}
-function st(f,l){var k=f+'|'+l;return A.f[k]||(A.f[k]={st:1,sk:0,wr:0,m:0,fs:0,due:0,iv:0,weak:0});}
+function st(f,l){var k=f+'|'+l;return A.f[k]||(A.f[k]={st:1,h:[],wr:0,m:0,fh:[],due:0,iv:0,weak:0});}
 function pool(f,l,key){return (BANK[f]&&BANK[f][l]&&BANK[f][l][key])||[];}
 function pickQ(f,l,key){var p=pool(f,l,key);if(!p.length)return null;var last=Q.lastQ,c=p.filter(function(x){return x!==last;});c=c.length?c:p;var pk=c[Math.floor(Math.random()*c.length)];return X.inst(pk);}
 function count(t){return A.hist.slice(-10).filter(function(x){return x===t;}).length;}
@@ -86,7 +86,7 @@ function update(item,r){if(item.type==='place'){placeUpdate(item,r);save();retur
   if(item.type==='check'){var c=A.check;if(ok&&r==='fast')c.ok++;else{c.wrong.push(item.f);}c.i++;
     if(c.i>=c.items.length){Q.checkResult={l:c.l,ok:c.ok,n:c.items.length};
       if(c.ok>=8){A.passed=c.l;Q.checkResult.up=nextLevel(c.l);var nl=Q.checkResult.up;if(nl){A.level=nl;A.passed=0;A.diagDone=true;A.diagQ=null;A.focus=null;}}
-      else{c.wrong.forEach(function(f){var x=st(f,c.l);x.weak=1;x.m=Math.min(x.m,2);x.fs=0;});Q.checkResult.wrong=uniq(c.wrong);}
+      else{c.wrong.forEach(function(f){var x=st(f,c.l);x.weak=1;x.m=Math.min(x.m,2);x.fh=[];});Q.checkResult.wrong=uniq(c.wrong);}
       A.check=null;}
     save();return;}
   if(item.type==='diag0'){if(r==='fast'){s.st=STAGES.length-1;s.m=Math.max(s.m,2);
@@ -94,24 +94,25 @@ function update(item,r){if(item.type==='place'){placeUpdate(item,r);save();retur
     save();return;}
   if(item.type==='review'||item.type==='extra'){
     if(r==='fast'){if(item.type==='review'){s.iv=Math.min(s.iv+1,IV.length-1);s.m=4;}s.due=now+IV[s.iv]*DAY;}
-    else{s.iv=0;s.due=now+DAY;s.weak=1;s.m=Math.min(s.m,2);s.fs=0;}
+    else{s.iv=0;s.due=now+DAY;s.weak=1;s.m=Math.min(s.m,2);s.fh=[];}
     save();return;}
   /* new / weak */
-  var need=STAGES[item.stIdx].need||3,last=STAGES.length-1;
+  var g=STAGES[item.stIdx],last=STAGES.length-1,FH={win:6,need:4};
+  if(item.stIdx===s.st)s.h=(s.h||[]).concat([ok]).slice(-g.win);
+  if(item.stIdx===last&&s.m>=2)s.fh=(s.fh||[]).concat([r==='fast']).slice(-FH.win);
   if(ok){s.wr=0;
-    if(item.stIdx===s.st){s.sk++;
-      if(s.sk>=need){s.sk=0;X.markCleared(item.f,item.l,item.key);
-        Q.msg='「'+STAGES[item.stIdx].name+'」合格！'+(item.stIdx<last?'次は「'+STAGES[item.stIdx+1].name+'」。'+(STAGES[item.stIdx+1].need||3)+'問続けて正解で合格。':'あとは時間内に速く正確に解けるようにしよう。');
+    if(item.stIdx===s.st){
+      if(stagePassed(s.h,g)){Q.passH=s.h;s.h=[];X.markCleared(item.f,item.l,item.key);
+        Q.msg='「'+STAGES[item.stIdx].name+'」合格！'+(item.stIdx<last?'次は「'+STAGES[item.stIdx+1].name+'」。'+STAGES[item.stIdx+1].win+'問中'+STAGES[item.stIdx+1].need+'問正解で合格。':'あとは時間内に速く正確に解けるようにしよう。');
         if(item.stIdx===1)s.m=Math.max(s.m,1);
         if(item.stIdx<last)s.st++;else s.m=Math.max(s.m,2);}}
     if(r==='slow'&&s.m>=1)s.weak=1;
-    if(item.stIdx===last&&s.m>=2&&r==='fast'){s.fs++;s.weak=0;
-      if(s.fs>=3&&s.m<3){s.m=3;s.iv=0;s.due=now+DAY;Q.msg='「'+item.f+'」指標'+item.l+'を習得！';}}
-    else if(r!=='fast')s.fs=0;
+    if(item.stIdx===last&&s.m>=2&&r==='fast'){s.weak=0;
+      if(stagePassed(s.fh,FH)&&s.m<3){s.m=3;s.iv=0;s.due=now+DAY;Q.msg='「'+item.f+'」指標'+item.l+'を習得！';}}
     if(r==='fast'&&item.type==='weak'&&s.m<2)s.weak=0;
-  }else{s.sk=0;s.fs=0;s.wr++;s.weak=1;
-    if(s.wr>=2&&s.st>1){s.st--;s.wr=0;}
-    if(r==='timeout'&&s.st>1){s.st--;s.wr=0;Q.reLesson=item;}
+  }else{s.wr++;s.weak=1;
+    if(s.wr>=2&&s.st>1){s.st--;s.wr=0;s.h=[];}
+    if(r==='timeout'&&s.st>1){s.st--;s.wr=0;s.h=[];Q.reLesson=item;}
     if(s.wr===0&&!Q.reLesson)Q.msg='2回続けて間違えたので、ひとつ前の「'+STAGES[s.st].name+'」に戻って練習しよう。';}
   save();
 }
@@ -125,7 +126,7 @@ function diagResult(step,ok){var item=Q.diag.item,s=st(item.f,item.l);
   if(ok)return;
   /* つまずいた所に戻す：内訳・図 → 概念か練習、計算 → 実践（単純な数値） */
   var back=step.k<2?Math.min(s.st,2):Math.min(s.st,3);
-  if(back<1)back=1;s.st=back;s.sk=0;s.wr=0;
+  if(back<1)back=1;s.st=back;s.h=[];s.wr=0;
   A.drill={f:item.f,l:item.l,stIdx:back,n:2};save();}
 
 /* ===== 画面 ===== */
@@ -139,13 +140,15 @@ function startTimer(){stopTimer();Q.t0=Date.now();var item=Q.item;if(!item||item
 /* 段階制の問題（new/weak）は B案のヘッダー：段階番号・分野・段階名・連続正解 */
 var ST_SHORT=['解き方','概念','練習','実践①','実践②'];
 function staged(item){return item&&(item.type==='new'||item.type==='weak')&&item.stIdx>0;}
-function streakOf(item){var s=st(item.f,item.l),last=STAGES.length-1,need=STAGES[item.stIdx].need||3,n=(item.stIdx===last&&s.m>=2)?s.fs:(item.stIdx===s.st?s.sk:0);
-  if(Q.picked!=null&&Q.full)n=need;/* 合格した直後は全部うめて見せる */
-  return {n:Math.min(n,need),need:need};}
-function boxes(n,need,big){var h='<span class="cp-boxes'+(big?' big':'')+'" role="img" aria-label="連続正解 '+n+' / '+need+'">';for(var i=0;i<need;i++)h+='<i class="'+(i<n?'on':'')+'"></i>';return h+'</span>';}
+function streakOf(item){var s=st(item.f,item.l),last=STAGES.length-1,g=STAGES[item.stIdx],fin=item.stIdx===last&&s.m>=2,
+  h=fin?(s.fh||[]):(item.stIdx===s.st?(s.h||[]):[]);
+  if(Q.picked!=null&&Q.full)h=Q.passH||h;/* 合格した直後は合格したときの記録を見せる */
+  return {h:h.slice(-g.win),g:fin?{win:6,need:4}:g};}
+function boxes(h,g,big){var n=stageOk(h,g),x='<span class="cp-boxes'+(big?' big':'')+'" role="img" aria-label="正解 '+n+' / '+g.need+'">';
+  for(var i=0;i<g.win;i++)x+='<i class="'+(i<h.length?(h[i]?'on':'ng'):'')+'"></i>';return x+'</span><span class="cp-cnt">'+n+' / '+g.need+'</span>';}
 function stageHead(item){var k=streakOf(item);
   return '<div class="bar"><button class="back" data-act="back" aria-label="もどる">'+X.icon('back')+'</button><span class="cp-num">'+(item.stIdx+1)+'</span><span class="cp-name"><span>'+item.f+'</span><b>'+STAGES[item.stIdx].name+'</b></span></div>'+
-    '<div class="cp-streak"><b>連続正解</b>'+boxes(k.n,k.need)+'</div>';}
+    '<div class="cp-streak"><b>正解</b>'+boxes(k.h,k.g)+'</div>';}
 function header(item){if(staged(item))return stageHead(item);return X.bar(item.type==='check'?'昇格試験 '+item.ci+'/'+item.cn:item.type==='place'?'実力診断 '+item.pn:item.f+'・'+STAGES[item.stIdx].name);}
 var SUP_IC='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg>';
 function sup(t){return '<div class="sup"><span class="sup-ic" aria-hidden="true">'+SUP_IC+'</span><div class="sup-b">'+t+'</div></div>';}
@@ -168,7 +171,7 @@ function viewPlace(){var l=A.level,wk=weakList(l),h=X.bar('実力診断の結果
 function viewIntro(){var it=Q.pending,k=it.type==='lesson'?0:it.stIdx,h=X.bar(it.f+'・指標'+it.l);
   h+='<div class="cp"><div class="cp-big"><span class="cp-n">'+(k+1)+'</span><span class="cp-of">/ '+STAGES.length+'</span></div><div class="cp-title">'+STAGES[k].name+'</div>';
   h+='<div class="cp-bar">'+STAGES.map(function(g,i){return '<div class="'+(i<k?'done':i===k?'now':'')+'"><i></i><span>'+ST_SHORT[i]+'</span></div>';}).join('')+'</div>';
-  if(STAGES[k].need)h+='<div class="cp-streak big"><b>連続正解</b>'+boxes(0,STAGES[k].need,true)+'</div>';
+  if(STAGES[k].need)h+='<div class="cp-streak big"><b>正解</b>'+boxes([],STAGES[k],true)+'</div>';
   return h+'</div><button class="next" data-act="aiintrogo">はじめる</button>';}
 function viewExam(){var l=A.level,h=X.bar('昇格試験');
   h+=sup('指標'+l+'の全分野から<b>10問</b>出すよ。本番と同じタイマーで、<b>8問以上</b>時間内に正解すれば合格。合格すると指標'+(nextLevel(l)||l)+'に上がる！');

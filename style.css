@@ -184,3 +184,12 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .cp-name{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
 .cp-name span{font-size:13px;font-weight:700;color:var(--muted)}
 .cp-name b{font-size:16px;font-weight:800}
+/* 直近の正誤（6問中4問）：緑＝正解、赤＝不正解 */
+.streak{align-items:center}
+.streak i{border-radius:0;width:12px;height:12px}
+.streak i.on{background:var(--ok)} .streak i.ng{background:var(--ng)}
+.streak b{font-size:13px;margin-left:4px;font-variant-numeric:tabular-nums}
+.cp-boxes{gap:4px}
+.cp-boxes i{width:22px;height:22px}
+.cp-boxes i.ng{background:var(--ng);border-color:var(--ng)}
+.cp-cnt{font-weight:800;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}

@@ -79,7 +79,7 @@ function bar(name,logo){
   return '<div class="bar"><button class="back" data-act="back" aria-label="もどる">'+ICON.back+'</button>'+
     (logo?'<span class="mini-logo" aria-hidden="true">SPI</span>':'')+'<span class="bar-name">'+name+'</span>'+(S.view==='quiz'?streakHtml():'')+'</div>';
 }
-function streakHtml(){var need=STAGES[S.stage].need,h='<span class="streak" role="img" aria-label="連続正解 '+S.streak+' / '+need+'">';for(var i=0;i<need;i++)h+='<i class="'+(i<S.streak?'on':'')+'"></i>';return h+'</span>';}
+function streakHtml(){var g=STAGES[S.stage],r=(S.hist||[]).slice(-g.win),n=stageOk(r,g),h='<span class="streak" role="img" aria-label="正解 '+n+' / '+g.need+'">';for(var i=0;i<g.win;i++)h+='<i class="'+(i<r.length?(r[i]?'on':'ng'):'')+'"></i>';return h+'<b>'+n+'/'+g.need+'</b></span>';}
 function progHtml(n){var h='<span class="prog" role="img" aria-label="'+n+' / '+STAGES.length+'">';for(var i=0;i<STAGES.length;i++)h+='<i class="'+(i<n?'on':'')+'"></i>';return h+'</span>';}
 function cellHtml(x,tag,cls){var c=cls||'';if(x&&x.charAt(0)==='!'){x=x.slice(1);c+=' ask';}else if(x==='?')c+=' ask';return '<'+tag+(c?' class="'+c.trim()+'"':'')+'>'+(x||'')+'</'+tag+'>';}
 function figHtml(f){
@@ -151,7 +151,7 @@ function lessonHtml(f,l){var h='';((typeof ESSENCE!=='undefined'&&ESSENCE[f])||[
   h+='<section class="lesson"><h2>'+sec.h+'</h2>'+(sec.q?'<div class="q ex">'+sec.q+'</div>':'')+(sec.p?'<div class="lp">'+sec.p+'</div>':'')+(sec.fig?figHtml(sec.fig):'')+(sec.p2?'<div class="lp">'+sec.p2+'</div>':'')+'</section>';});return h;}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function instPool(p){return p.map(inst).filter(function(x){return x;});}
-function startStage(i){S.stage=i;S.streak=0;S.base=BANK[S.field][S.level][STAGES[i].key];S.pool=instPool(shuffle(S.base));S.idx=0;S.picked=null;S.view='quiz';}
+function startStage(i){S.stage=i;S.hist=[];S.base=BANK[S.field][S.level][STAGES[i].key];S.pool=instPool(shuffle(S.base));S.idx=0;S.picked=null;S.view='quiz';}
 var tick=null;
 function stopTimer(){if(tick){clearInterval(tick);tick=null;}}
 function startQuestion(){stopTimer();S.t0=Date.now();S.timeout=false;S.sel=[];
@@ -160,7 +160,7 @@ function startQuestion(){stopTimer();S.t0=Date.now();S.timeout=false;S.sel=[];
     if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
     if(left<=0){stopTimer();answer(-1,true);}},200);}
 function answer(i,to){stopTimer();var it=S.pool[S.idx],ok=!to&&isRight(it,i),sec=Math.round((Date.now()-S.t0)/1000),tg=targetOf(it,S.level);
-  S.picked=i;S.timeout=!!to;S.lastSec=sec;S.lastR=classify(ok,sec,tg,to);S.streak=ok?S.streak+1:0;
+  S.picked=i;S.timeout=!!to;S.lastSec=sec;S.lastR=classify(ok,sec,tg,to);S.hist=(S.hist||[]).concat([ok]).slice(-STAGES[S.stage].win);
   logAnswer({t:Date.now(),f:S.field,l:S.level,s:STAGES[S.stage].key,q:qid(it),r:S.lastR,sec:sec,tg:tg,pick:i});
   render();var r=inner.querySelector('.result');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'});}
 function go(v){if(v!=='quiz')stopTimer();S.view=v;render();appV.scrollTop=0;if(v==='quiz'&&S.picked==null)startQuestion();}
@@ -178,7 +178,7 @@ inner.addEventListener('click',function(e){
   else if(a==='pick'){var pi=+b.dataset.i;if(isMulti(S.pool[S.idx])){toggleSel(S.sel,pi);render();}else answer(pi,false);}
   else if(a==='submit'){answer(S.sel.slice(),false);}
   else if(a==='next'){
-    if(S.streak>=STAGES[S.stage].need){P[S.field+'|'+S.level+'|'+STAGES[S.stage].key]=1;save();go('clear');return;}
+    if(stagePassed(S.hist,STAGES[S.stage])){P[S.field+'|'+S.level+'|'+STAGES[S.stage].key]=1;save();go('clear');return;}
     S.idx++;S.picked=null;
     if(S.idx>=S.pool.length){var last=S.pool[S.pool.length-1].src||S.pool[S.pool.length-1],nb=shuffle(S.base);if(nb.length>1&&nb[0]===last)nb.push(nb.shift());S.pool=instPool(nb);S.idx=0;}
     go('quiz');
