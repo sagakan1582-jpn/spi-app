@@ -103,7 +103,7 @@ function update(item,r){if(item.type==='place'){placeUpdate(item,r);save();retur
         if(item.stIdx<last)s.st++;else s.m=Math.max(s.m,2);}}
     if(r==='slow'&&s.m>=1)s.weak=1;
     if(item.stIdx===last&&s.m>=2&&r==='fast'){s.fs++;s.weak=0;
-      if(s.fs>=3&&s.m<3&&(s.kc||0)>=2){s.m=3;s.iv=0;s.due=now+DAY;Q.msg='「'+item.f+'」指標'+item.l+'を習得！';}}
+      if(s.fs>=3&&s.m<3){s.m=3;s.iv=0;s.due=now+DAY;Q.msg='「'+item.f+'」指標'+item.l+'を習得！';}}
     else if(r!=='fast')s.fs=0;
     if(r==='fast'&&item.type==='weak'&&s.m<2)s.weak=0;
   }else{s.sk=0;s.fs=0;s.wr++;s.weak=1;
@@ -115,28 +115,11 @@ function update(item,r){if(item.type==='place'){placeUpdate(item,r);save();retur
 
 /* ===== 3ステップ診断（既存の問題から小問を作る） ===== */
 function uniq(a){var o=[];a.forEach(function(x){if(x&&o.indexOf(x)<0)o.push(x);});return o;}
-function allItems(f,l){var o=[];STAGES.forEach(function(g){if(!g.lesson)o=o.concat(pool(f,l,g.key).map(X.inst).filter(function(x){return x;}));});return o;}
-function buildDiag(item){var it=item.it,f=item.f,l=item.l,steps=[];
-  var own=X.inwText(it,f),others=[];
-  Object.keys(BANK).forEach(function(g){if(g===f)return;Object.keys(BANK[g]).forEach(function(lv){allItems(g,+lv).slice(0,3).forEach(function(x){others.push(X.inwText(x,g));});});});
-  others=X.shuffle(uniq(others).filter(function(x){return x!==own;})).slice(0,3);
-  if(own&&others.length>=2)steps.push(mk(0,own,others));
-  var mine=JSON.stringify(it.fig),figs=[];
-  allItems(f,l).forEach(function(x){var j=JSON.stringify(x.fig);if(x.fig&&j!==mine&&figs.indexOf(j)<0)figs.push(j);});
-  figs=X.shuffle(figs).slice(0,2).map(function(j){return JSON.parse(j);});
-  if(it.fig&&figs.length>=2)steps.push(mk(1,it.fig,figs));
-  var calcs=uniq(allItems(f,l).map(function(x){return x.calc;})).filter(function(x){return x!==it.calc;});
-  calcs=X.shuffle(calcs).slice(0,3);
-  if(it.calc&&calcs.length>=2)steps.push(mk(2,it.calc,calcs));
-  return steps;
-  function mk(k,right,wrong){var c=X.shuffle([right].concat(wrong));return {k:k,c:c,a:c.indexOf(right)};}
-}
+/* 小問は js/kata.js が同じ問題の言葉・数字の位置・計算を崩して作る（他の分野・他の問題は混ぜない） */
+function buildDiag(item){return window.KATA?KATA.steps(item.it,item.f):[];}
 function diagResult(step,ok){var item=Q.diag.item,s=st(item.f,item.l);
   X.logAnswer({t:Date.now(),f:item.f,l:item.l,s:'diag'+(step.k+1),q:X.qid(item.it),r:ok?'fast':'wrong',sec:0,tg:0,pick:Q.diag.pick});
   if(ok)return;
-  if(Q.diag.mode==='check'){
-    /* 型チェックで間違えた＝型を使わずに正解した可能性。連続正解を取り消し、同じ段階を2問練習させる */
-    if(Q.before){s.st=Q.before.st;s.m=Q.before.m;}s.sk=0;s.fs=0;s.weak=1;s.kc=0;Q.drill={f:item.f,l:item.l,stIdx:Math.max(1,item.stIdx),n:2};save();return;}
   /* つまずいた所に戻す：内訳・図 → 概念か練習、計算 → 実践（単純な数値） */
   var back=step.k<2?Math.min(s.st,2):Math.min(s.st,3);
   if(back<1)back=1;s.st=back;s.sk=0;s.wr=0;
@@ -181,19 +164,19 @@ function viewAI(){var item=Q.item,h,m=Q.showMsg;
   if(Q.diag&&Q.diagShow)return viewDiag();
   if(!item)return X.bar('AIにお任せ教育モード')+'<div class="clear"><div class="clear-badge">'+X.icon('big')+'</div></div>';
   var it=item.it;
-  h=header(item)+(m&&Q.picked==null?sup(m):'')+(Q.picked==null&&item.timer!=='none'?'<div class="timer" role="img" aria-label="制限時間"><i id="aibar"></i></div>':'')+'<div class="q">'+it.q+'</div>'+X.choicesHtml(it,Q.picked,Q.sel,'aipick','aisubmit');
+  h=header(item)+(m&&Q.picked==null?sup(m):'')+(Q.picked==null&&item.timer!=='none'?'<div class="timer" role="img" aria-label="制限時間"><i id="aibar"></i></div>':'')+'<div class="q">'+it.q+'</div>'+X.choicesHtml(it,Q.picked,Q.sel,'aipick','aisubmit',true);
   if(Q.picked!=null){var ok=X.isRight(it,Q.picked);
     h+='<div class="result"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?X.icon('ok')+'正解':X.icon('ng')+(Q.timeout?'時間切れ':'不正解'))+'<span class="sec'+(Q.r==='slow'?' over':'')+'">'+Q.sec+'秒</span></div>';
     if(item.type!=='check'||!ok)h+='<div class="calc"><b>'+X.inwHead(it,item.f)+'</b>　'+X.inwText(it,item.f)+'</div>'+(it.fig?X.figHtml(it.fig):'')+'<div class="calc">'+(it.calc||'')+'</div><div class="calc"><b>答え</b>　'+X.ansText(it)+'</div>';
     h+='<button class="next" data-act="ainext">次へ</button></div>';}
   return h;
 }
-function viewDiag(){var d=Q.diag,step=d.steps[d.i],item=d.item,h=X.bar((d.mode==='check'?'型チェック ':'診断 ')+(d.i+1)+'/'+d.steps.length);
+function viewDiag(){var d=Q.diag,step=d.steps[d.i],item=d.item,h=X.bar('型チェック '+(d.i+1)+'/'+d.steps.length);
   h+='<div class="q">'+item.it.q+'</div><div class="q">'+STEP_Q[step.k]+'</div><div class="choices">';
   step.c.forEach(function(c,i){var cls='';if(d.pick!=null){if(i===step.a)cls=' correct';else if(i===d.pick)cls=' wrong';}
     var body=step.k===1?X.figHtml(c):c;
     h+='<button class="choice'+(step.k===1?' fig-choice':'')+cls+'" data-act="aidiag" data-i="'+i+'"'+(d.pick!=null?' disabled':'')+'><span class="lt">'+'ABCDE'[i]+'</span><span class="cbody">'+body+'</span></button>';});
-  h+='</div>';
+  h+=X.dkHtml('aidiag',d.pick)+'</div>';
   if(d.pick!=null)h+='<button class="next" data-act="aidiagnext">次へ</button>';
   return h;
 }
@@ -221,13 +204,8 @@ function answer(i,to){stopTimer();var item=Q.item,it=item.it,ok=!to&&X.isRight(i
   X.logAnswer({t:Date.now(),f:item.f,l:item.l,s:item.key,q:X.qid(it),r:Q.r,sec:sec,tg:tg,pick:i,ai:item.type});
   var s0=st(item.f,item.l);Q.before={st:s0.st,m:s0.m};
   update(item,Q.r);
-  /* 診断は実践の問題で間違えたときだけ（概念・練習は解説で足りる） */
+  /* 型チェックは実践の問題で間違えたときだけ（正解したときは出さない。2026-11-16 ユーザー指示） */
   if(Q.r==='wrong'&&item.type!=='check'&&item.type!=='diag0'&&item.type!=='place'&&item.stIdx>=3){var steps=buildDiag(item);if(steps.length)Q.diag={item:item,steps:steps,i:0,pick:null,pending:true};}
-  /* 型チェック：正解しても、型（内訳→図→計算）を使って解けたかを確かめる。
-     速すぎる正解（目標の2割未満か8秒未満）、実践でまだ2回合格していない、または5回に1回の抜き打ちで出す。2回合格しないと「速い」にならない */
-  else if((Q.r==='fast'||Q.r==='slow')&&item.stIdx>=2&&(item.type==='new'||item.type==='weak'||item.type==='review'||item.type==='extra')){
-    var s1=st(item.f,item.l),quick=Q.sec<Math.max(8,tg*0.2);
-    if(quick||((s1.kc||0)<2&&item.stIdx>=3)||Math.random()<0.2){var cs=buildDiag(item);if(cs.length)Q.diag={item:item,steps:cs,i:0,pick:null,pending:true,mode:'check'};}}
   X.render();var r=X.inner().querySelector('.result');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'});}
 
 X.aiQ=function(){return Q;};
@@ -236,15 +214,15 @@ X.acts.aigo=function(){if(!A.placed&&!A.pl)startPlace();show();};
 X.acts.aihomego=function(){Q.checkResult=null;X.go('aihome');};
 X.acts.aiintrogo=function(){var it=Q.pending;Q.pending=null;Q.item=it;if(it.type==='lesson'){X.go('ailesson');return;}Q.lastQ=it.it.src||it.it;X.go('ai');startTimer();};
 X.acts.aiexamgo=function(){startCheck(A.level);show();};
-X.acts.aipick=function(b){var i=+b.dataset.i;if(X.isMulti(Q.item.it)){X.toggleSel(Q.sel,i);X.render();}else answer(i,false);};
+X.acts.aipick=function(b){if(b.dataset.i==='dk'){answer('dk',false);return;}var i=+b.dataset.i;if(X.isMulti(Q.item.it)){X.toggleSel(Q.sel,i);X.render();}else answer(i,false);};
 X.acts.aisubmit=function(){answer(Q.sel.slice(),false);};
 X.acts.ainext=function(){if(Q.checkResult&&X.state().view==='aicheck'){Q.checkResult=null;}
   if(Q.diag&&Q.diag.pending){Q.diag.pending=false;Q.picked=null;Q.diagShow=true;X.go('ai');return;}
   Q.diag=null;show();};
-X.acts.aidiag=function(b){var d=Q.diag,step=d.steps[d.i];d.pick=+b.dataset.i;var ok=d.pick===step.a;
+X.acts.aidiag=function(b){var d=Q.diag,step=d.steps[d.i];d.pick=b.dataset.i==='dk'?'dk':+b.dataset.i;var ok=d.pick===step.a;
   diagResult(step,ok);if(!ok)d.failed=true;X.render();};
 X.acts.aidiagnext=function(){var d=Q.diag;
-  if(d.failed||d.i+1>=d.steps.length){if(d.mode==='check'&&!d.failed){var s=st(d.item.f,d.item.l);s.kc=(s.kc||0)+1;save();}Q.diag=null;show();return;}
+  if(d.failed||d.i+1>=d.steps.length){Q.diag=null;show();return;}
   d.i++;d.pick=null;X.render();};
 X.acts.ailessondone=function(){var item=Q.item;X.markCleared(item.f,item.l,'lesson');show();};
 })();

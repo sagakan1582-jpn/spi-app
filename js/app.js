@@ -23,12 +23,15 @@ function isRight(it,p){if(!isMulti(it))return p===it.a;if(!Array.isArray(p))retu
 function inAns(it,i){return isMulti(it)?it.a.indexOf(i)>=0:i===it.a;}
 function inPick(p,i){return Array.isArray(p)?p.indexOf(i)>=0:p===i;}
 function ansText(it){return isMulti(it)?it.a.map(function(i){return LT[i];}).join('・'):it.c[it.a];}
-function pickText(it,p){if(p==null||p===-1||(Array.isArray(p)&&!p.length))return '';return Array.isArray(p)?p.map(function(i){return LT[i];}).join('・'):LT[p]+'　'+it.c[p];}
-function choicesHtml(it,picked,sel,act,sub){var h='<div class="choices">';
+function pickText(it,p){if(p==null||p===-1||(Array.isArray(p)&&!p.length))return '';if(p==='dk')return 'わからない';return Array.isArray(p)?p.map(function(i){return LT[i];}).join('・'):LT[p]+'　'+it.c[p];}
+/* 「わからない」：選ぶと不正解（当てずっぽうの正解を防ぐ。模擬テストにはつけない） */
+function dkHtml(act,picked){return '<button class="choice dk'+(picked==='dk'?' wrong':'')+'" data-act="'+act+'" data-i="dk"'+(picked!=null?' disabled':'')+'><span class="lt"></span>わからない</button>';}
+function choicesHtml(it,picked,sel,act,sub,dk){var h='<div class="choices">';
   it.c.forEach(function(c,i){var cls='';
     if(picked!=null){if(inAns(it,i))cls=' correct';else if(inPick(picked,i))cls=' wrong';}
     else if(sel&&sel.indexOf(i)>=0)cls=' sel';
     h+='<button class="choice'+cls+'" data-act="'+act+'" data-i="'+i+'"'+(picked!=null?' disabled':'')+(isMulti(it)&&picked==null?' aria-pressed="'+(cls===' sel')+'"':'')+'><span class="lt">'+LT[i]+'</span>'+c+'</button>';});
+  if(dk)h+=dkHtml(act,picked);
   h+='</div>';
   if(isMulti(it)&&picked==null)h+='<button class="next" data-act="'+sub+'">決定</button>';
   return h;}
@@ -60,7 +63,7 @@ var SPI=window.SPI={views:{},acts:{},state:function(){return S;},go:function(v){
   markCleared:function(f,l,k){P[f+'|'+l+'|'+k]=1;save();},
   inwText:function(it,f){return it.inw||(it.fig&&it.fig.parts?it.fig.parts.filter(function(x){return x.n;}).map(function(x){return x.n;}).join('・'):'');},
   inwHead:function(it,f){return it.inwh||(f==='順列・組合せ'?'整理':'内訳');},
-  figHtml:function(f){return figHtml(f);},inst:inst,isMulti:isMulti,isRight:isRight,ansText:ansText,pickText:pickText,choicesHtml:choicesHtml,toggleSel:toggleSel,bar:function(n){return bar(n);},icon:function(k){return ICON[k];},
+  figHtml:function(f){return figHtml(f);},inst:inst,isMulti:isMulti,isRight:isRight,ansText:ansText,pickText:pickText,choicesHtml:choicesHtml,dkHtml:dkHtml,toggleSel:toggleSel,bar:function(n){return bar(n);},icon:function(k){return ICON[k];},
   lessonHtml:function(f,l){return lessonHtml(f,l);}};
 var ICON={
  back:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
@@ -125,7 +128,7 @@ function render(){
       h+='<button class="item compact'+(i===recStage(S.field,S.level)?' rec':'')+'" data-act="stage" data-i="'+i+'"'+(open?'':' disabled')+'>'+(i===recStage(S.field,S.level)?ICON.rec:'')+'<span class="num">'+(i+1)+'</span><span class="name">'+s.name+'</span>'+(done?ICON.check:'')+ICON.chev+'</button>';});
   } else if(S.view==='quiz'){
     var it=S.pool[S.idx];
-    h=bar(STAGES[S.stage].name)+(S.picked==null&&strictTimer()?'<div class="timer" role="img" aria-label="制限時間"><i id="tbar"></i></div>':'')+'<div class="q">'+it.q+'</div>'+choicesHtml(it,S.picked,S.sel,'pick','submit');
+    h=bar(STAGES[S.stage].name)+(S.picked==null&&strictTimer()?'<div class="timer" role="img" aria-label="制限時間"><i id="tbar"></i></div>':'')+'<div class="q">'+it.q+'</div>'+choicesHtml(it,S.picked,S.sel,'pick','submit',true);
     if(S.picked!=null){var ok=isRight(it,S.picked);
       h+='<div class="result"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON.ok+'正解':ICON.ng+(S.timeout?'時間切れ':'不正解'))+'<span class="sec'+(S.lastR==='slow'?' over':'')+'">'+S.lastSec+'秒</span></div>'+'<div class="calc"><b>'+(it.inwh||(S.field==='順列・組合せ'?'整理':'内訳'))+'</b>　'+(it.inw||it.fig.parts.filter(function(x){return x.n;}).map(function(x){return x.n;}).join('・'))+'</div>'+figHtml(it.fig)+'<div class="calc">'+it.calc+'</div><div class="calc"><b>答え</b>　'+ansText(it)+'</div>'+
         '<button class="next" data-act="next">次へ</button></div>';}
@@ -171,6 +174,7 @@ inner.addEventListener('click',function(e){
   else if(a==='level'){S.level=+b.dataset.l;go('fields');}
   else if(a==='stage'){var si=+b.dataset.i;if(STAGES[si].lesson){S.stage=si;go('lesson');}else{startStage(si);go('quiz');}}
   else if(a==='lessondone'){P[S.field+'|'+S.level+'|lesson']=1;save();startStage(1);go('quiz');}
+  else if(a==='pick'&&b.dataset.i==='dk'){answer('dk',false);}
   else if(a==='pick'){var pi=+b.dataset.i;if(isMulti(S.pool[S.idx])){toggleSel(S.sel,pi);render();}else answer(pi,false);}
   else if(a==='submit'){answer(S.sel.slice(),false);}
   else if(a==='next'){
