@@ -21,15 +21,20 @@ function levels(){return LEVELS.filter(function(l){return fields(l).length;});}
      難しい問題に正解すると大きく上がり、易しい問題を間違えると大きく下がる。
      b：計算＝その指標（3〜5）、1つ選ぶ推論＝5.5、すべて選ぶ（指標6）＝6.3、すべて選ぶ（指標7）＝7。
      目標時間より遅い正解は「b−slow の問題に正解した」とみなす（ぎりぎりの正解では上の段階の証拠にならない）。時間切れは不正解。
-   - 次の問題は θ に合わせる：計算は θ を四捨五入した指標3〜5。推論は θ≥gc で「すべて選ぶ」（θ≥g7 なら指標7）、それ以外は1つ選ぶ推論（θ≥g7 なら指標7）。
-     「すべて選ぶ」のあとは推論 cd 問（θ≥g7 なら cd7 問）を1つ選ぶ形式にする（cbは毎回ではなく、ときどき出る）。
-   - 全体23分、時間切れまで。1問目は表の読み取り（指標4）。以降は 推論→計算→計算→推論→計算→計算→推論→計算→推論→計算 をくり返し、
-     θ≥5.5 のときは推論が続く（受検記録：高得点者は前半2〜3問の計算のあと推論ばかり）。推論は正誤に関係なく必ず出る。
+   - 次の問題は θ に合わせる：計算は θ を四捨五入した指標3〜5（分野は指標ごとにランダムな位置から順に回す）。
+     推論の割合は θ に応じた目標（rateOf）に合わせ、足りなければ推論、足りていれば計算を出す（計算も最後まで出続ける）。
+     推論のうち「すべて選ぶ」は θ に応じた上限（cbCap）まで、間に1つ選ぶ推論を cd 問はさむ。θ≥g7 なら指標7。
+   - 全体23分、時間切れまで。1問目は表の読み取り（指標4）。
    - 1問の制限時間（本番の推定）：計算 指標3・4は90秒、指標5と表は120秒、1つ選ぶ推論120秒、すべて選ぶ180秒。
    - 推定段階＝最後の θ に sh（0.3）を足した整数部分（1〜7）。「すべて選ぶ」の回数は判定には使わない。結果として受検者報告の目安
      （7＝cb×3以上／6・5＝cb×2／4＝cb×1／3＝なし）に合うよう gc・g7 を仮想受検者で調整した（app-tools/sim_population.js）。 */
-var P=window.MOCK_P||{gc:5.0,g7:6.3,slow:0.7,cd:3,cd7:2,sh:0.3},SL=1.7,PAT=['i','c','c','i','c','c','i','c','i','c'],TBL=['表の解釈','情報の読み取り'];
-function start(){T={th:4,cd:0,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0};nextQ();}
+var P=window.MOCK_P||{gc:5.0,g7:6.3,slow:0.7,cd:2,sh:0.3,c2:5.5,c3:6.5},SL=1.7,TBL=['表の解釈','情報の読み取り'];
+/* 推論の割合の目標（受検者報告：4＝推論2問程度／5＝4割／6＝5割／7＝6割）。θ の間は直線でつなぐ */
+var RT=[[3,0.15],[4,0.2],[5,0.4],[6,0.5],[7,0.6]];
+function rateOf(th){if(th<=RT[0][0])return RT[0][1];for(var i=1;i<RT.length;i++)if(th<=RT[i][0]){var a=RT[i-1],b=RT[i];return a[1]+(b[1]-a[1])*(th-a[0])/(b[0]-a[0]);}return RT[RT.length-1][1];}
+/* 「すべて選ぶ」の上限（受検者報告：7＝2〜3回／6＝1〜2回／5以下＝0〜2回） */
+function cbCap(th){return th>=P.c3?3:th>=P.c2?2:th>=P.gc?1:0;}
+function start(){T={th:4,cd:0,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0,inf:0};nextQ();}
 function limOf(c){return c.k==='m'?180:c.k==='e'?120:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
 function bOf(x){return x.k==='m'?(x.l===7?7:6.3):x.k==='e'?(x.l===7?6.3:5.5):x.l;}
 function estTheta(){var num=0,den=0;
@@ -38,7 +43,7 @@ function estTheta(){var num=0,den=0;
     num+=w*t;den+=w;}
   return den?num/den:4;}
 function clamp(x,lo,hi){return Math.max(lo,Math.min(hi,x));}
-function pickItem(l,want,only){var fs=fields(l).filter(function(f){return !only||only.indexOf(f)>=0;});if(!fs.length)fs=fields(l);var k=T.fi[l]||0,tries=0;
+function pickItem(l,want,only){var fs=fields(l).filter(function(f){return !only||only.indexOf(f)>=0;});if(!fs.length)fs=fields(l);var k=T.fi[l]!=null?T.fi[l]:Math.floor(Math.random()*fs.length),tries=0;
   while(tries<fs.length*2){var f=fs[k%fs.length];k++;tries++;
     var p=X.shuffle([].concat((BANK[f][l].real||[]),(BANK[f][l].applied||[])).filter(function(x){return T.used.indexOf(x)<0;}));
     var keep=null;
@@ -48,12 +53,13 @@ function pickItem(l,want,only){var fs=fields(l).filter(function(f){return !only|
     if(keep){T.fi[l]=k;T.used.push(keep.src);return {f:f,l:l,it:keep.it};}}
   return null;}
 function nextQ(){if(T.i>=60||Date.now()-T.t0>=TOTAL){finish();return;}
-  var l,w=null,k,only=null,slot=T.i===0?'t':(!fields(6).length?'c':T.th>=5.5&&T.i>=3?'i':PAT[(T.i-1)%PAT.length]);
+  /* 推論を出すのは、これまでの推論の数が「目標の割合×(これまでの問題数+1)」に届いていないとき。足りていれば計算 */
+  var l,w=null,k,only=null,slot=T.i===0?'t':(!fields(6).length?'c':T.inf<rateOf(T.th)*(T.i+1)?'i':'c');
   if(slot!=='i'){k='c';l=clamp(Math.round(T.th),3,5);while(l>3&&!fields(l).length)l--;if(slot==='t'){only=TBL;l=4;}}
-  else if(T.th>=P.gc&&T.cd<=0){k='m';w=true;l=T.th>=P.g7&&fields(7).length?7:6;T.cd=T.th>=P.g7?P.cd7:P.cd;}
+  else if(T.cd<=0&&T.cb<cbCap(T.th)){k='m';w=true;l=T.th>=P.g7&&fields(7).length?7:6;T.cd=P.cd;}
   else{k='e';w=false;l=T.th>=P.g7&&fields(7).length?7:6;T.cd--;}
   T.cur=pickItem(l,w,only);if(!T.cur){finish();return;}
-  T.cur.k=X.isMulti(T.cur.it)?'m':(k==='m'?'e':k);if(T.cur.k==='m')T.cb++;
+  T.cur.k=X.isMulti(T.cur.it)?'m':(k==='m'?'e':k);if(T.cur.k==='m')T.cb++;if(T.cur.k!=='c')T.inf++;
   T.qt0=Date.now();T.sel=[];X.go('mockq');run();}
 function stop(){if(tick){clearInterval(tick);tick=null;}}
 function run(){stop();var lim=limOf(T.cur)*1000;
