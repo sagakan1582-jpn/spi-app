@@ -47,6 +47,23 @@ if(typeof GENV==='undefined'){GENV=(function(){
          var un=ps.filter(function(x){return kn.indexOf(x)<0;});un.forEach(function(x){ow+=x.w;});
          if(rest<tot){kn.forEach(function(x){x.w=num(x.r);});un.forEach(function(x){x.w=ow?+((tot-rest)*x.w/ow).toFixed(3):0;});}}}}
    else if(o&&typeof o==='object')for(var k in o)widths(o[k]);}
+ /* 図の割合の段を直す（2026-11-17 不具合：元の問題で女子0.5・男子0.5のように同じ数字が別の意味で出ると、両方とも同じ値に置き換わり合計が1にならなかった）。
+    元の図で割合の合計が1の段は、置き換え候補（その数字の置き換え先すべて）から合計が1になる組を選ぶ。なければ null（作り直し） */
+ function rsum(row){var sg=(row||[]).filter(function(x){return x&&x.n!==undefined&&x.n!=='';});if(sg.length<2)return null;
+   var ok=sg.every(function(x){return /^0?\.\d+$|^1$/.test(String(x.r===undefined?'':x.r).trim());});if(!ok)return null;
+   var t=0;sg.forEach(function(x){t+=num(x.r);});return {sg:sg,t:t};}
+ function fixRows(fg,of,m){if(!fg||!fg.rows||!of||!of.rows)return true;var good=true;
+   of.rows.forEach(function(orow,ri){if(!ri)return;var o=rsum(orow);if(!o||Math.abs(o.t-1)>1e-6)return;var nrow=fg.rows[ri];if(!nrow)return;
+     var ns=(nrow||[]).filter(function(x){return x&&x.n!==undefined&&x.n!=='';});if(ns.length!==o.sg.length)return;
+     var opts=o.sg.map(function(x,i){var t=String(x.r).trim(),k=fmt(num(t));if(m[t])k=t;var L=(m[k]&&m[k].all)||[t],cur=String(ns[i].r);
+       var a=[cur];L.forEach(function(s){if(a.indexOf(s)<0)a.push(s);});return a;});
+     var tot=1;opts.forEach(function(a){tot*=a.length;});if(tot>5000){good=false;return;}var best=null,bc=1e9;
+     for(var c=0;c<tot;c++){var r=c,pick=[],s=0,ch=0;opts.forEach(function(a){var j=r%a.length;r=Math.floor(r/a.length);pick.push(a[j]);s+=num(a[j]);if(j)ch++;});
+       if(Math.abs(s-1)<1e-6&&ch<bc){bc=ch;best=pick;}}
+     if(!best){var rs=0;ns.slice(0,-1).forEach(function(x){rs+=num(x.r);});var lr=+(1-rs).toFixed(9);
+       if(lr>0&&lr<1){ns[ns.length-1].r=fmt(lr);return;}good=false;return;}/* 組が見つからないときは最後の区間を残りにする（3つに分ける問題の3つ目は残り） */
+     ns.forEach(function(x,i){x.r=best[i];});});
+   return good;}
  function valid(v,spec){for(var k in v){var x=v[k];if(typeof x!=='number')continue;if(!isFinite(x))return false;
      if(x<0||(x===0&&!(spec.z&&spec.z.indexOf(k)>=0)))return false;if('prwf'.indexOf(k[0])<0&&!isInt(x))return false;
      if(k[0]==='p'&&(!isInt(x*10)||(x>=100&&!spec.big)))return false;if(k[0]==='w'&&(!isInt(x)||x>=10))return false;}
@@ -75,7 +92,7 @@ if(typeof GENV==='undefined'){GENV=(function(){
      if(!N)N=O;var m=buildMap(O,N,spec),i=0,cnt=0;
      var q=o.q.replace(NUM,function(tk,pos,all){if(lab(all,pos,tk))return tk;var k=(spec.n||[])[i++];return k?same(tk,fmt(N[k])):tk;});
      var r={q:q,inwh:o.inwh,sec:o.sec,inw:spec.inw?spec.inw(N,o):sub(o.inw,m)};
-     var fg=spec.fig?spec.fig(N,o):walk(o.fig,m);if(fg&&!spec.fig)widths(fg);r.fig=fg;
+     var fg=spec.fig?spec.fig(N,o):walk(o.fig,m);if(fg&&!spec.fig){if(!fixRows(fg,o.fig,m))return null;widths(fg);}r.fig=fg;
      r.calc=spec.calc?spec.calc(N,o):subC(o.calc,m);
      var ch=spec.c?spec.c(N,O,R,o):choices(o,O,N,spec,R);r.c=ch.c;r.a=ch.a;r.v=N;return r;}};
    t.verify=function(v,r){if(!spec.chk)return 'verifyなし';var g={},tk=qt(r.q);(spec.n||[]).forEach(function(k,i){if(k&&tk[i])g[k]=num(tk[i].t);});
