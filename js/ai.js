@@ -14,7 +14,10 @@ var STEP_Q=['この問題の内訳はどれか。','この問題を解く図・�
 /* ===== 記録 ===== */
 function load(){try{A=JSON.parse(localStorage.getItem(AKEY)||'null');}catch(e){A=null;}
   if(!A||!A.f)A={level:firstLevel(),diagDone:false,diagQ:null,f:{},hist:[],check:null,placed:false};}
-function save(){try{localStorage.setItem(AKEY,JSON.stringify(A));}catch(e){}}
+/* 1問ごとに保存する（2026-11-16 ユーザー指示：区切りまで行かなくても途中経過を残す）。
+   問題のテンプレート（src）は関数を含むので保存しない。容量が足りないときは解答の記録を減らしてもう一度保存する */
+function save(){var j;try{j=JSON.stringify(A,function(k,v){return k==='src'?undefined:v;});}catch(e){return;}
+  try{localStorage.setItem(AKEY,j);}catch(e){try{var lg=JSON.parse(localStorage.getItem('mainichi-spi-log-v1')||'[]');localStorage.setItem('mainichi-spi-log-v1',JSON.stringify(lg.slice(-500)));localStorage.setItem(AKEY,j);}catch(e2){}}}
 function fields(l){return (CURRICULUM[l]||[]).filter(function(f){return BANK[f]&&BANK[f][l];});}
 function firstLevel(){for(var i=0;i<LEVELS.length;i++)if(fields(LEVELS[i]).length)return LEVELS[i];return 3;}
 function nextLevel(l){for(var i=0;i<LEVELS.length;i++)if(LEVELS[i]>l&&fields(LEVELS[i]).length)return LEVELS[i];return null;}
@@ -52,7 +55,7 @@ function weakList(l){return order(l).filter(function(f){var s=st(f,l),r=A.placeR
 function ready(l){var fs=fields(l);return fs.length&&fs.every(function(f){return st(f,l).m>=3;})&&!A.check&&A.passed!==l;}
 function next(){
   if(A.pl)return placeItem();
-  if(Q.drill&&Q.drill.n>0){Q.drill.n--;var d=Q.drill,s0=st(d.f,d.l);return make('weak',d.f,d.l,d.stIdx,timerFor(s0));}
+  if(A.drill&&A.drill.n>0){A.drill.n--;var d=A.drill,s0=st(d.f,d.l);return make('weak',d.f,d.l,d.stIdx,timerFor(s0));}
   var l=A.level,fs=fields(l),now=Date.now();
   if(!A.diagDone){
     if(!A.diagQ)A.diagQ=fs.slice();
@@ -123,7 +126,7 @@ function diagResult(step,ok){var item=Q.diag.item,s=st(item.f,item.l);
   /* つまずいた所に戻す：内訳・図 → 概念か練習、計算 → 実践（単純な数値） */
   var back=step.k<2?Math.min(s.st,2):Math.min(s.st,3);
   if(back<1)back=1;s.st=back;s.sk=0;s.wr=0;
-  Q.drill={f:item.f,l:item.l,stIdx:back,n:2};save();}
+  A.drill={f:item.f,l:item.l,stIdx:back,n:2};save();}
 
 /* ===== 画面 ===== */
 function stopTimer(){if(tick){clearInterval(tick);tick=null;}}
@@ -191,38 +194,42 @@ function show(){Q.picked=null;Q.sel=[];Q.timeout=false;Q.diagShow=false;Q.showMs
   if(Q.checkResult){X.go('aicheck');return;}
   if(Q.placeDone){Q.placeDone=false;X.go('aiplace');return;}
   if(Q.reLesson){var rl=Q.reLesson;Q.reLesson=null;Q.item={type:'lesson',f:rl.f,l:rl.l};X.go('ailesson');return;}
-  if(!A.pl&&!Q.drill&&ready(A.level)){X.go('aiexam');return;}
+  /* 前回の続き：型チェックの途中、または答える前の問題 */
+  if(A.diag){Q.diag=A.diag;Q.diag.pending=false;Q.diagShow=true;X.go('ai');return;}
+  if(A.cur){Q.item=A.cur;present();return;}
+  if(!A.pl&&!A.drill&&ready(A.level)){X.go('aiexam');return;}
   Q.item=next();
   /* 新しい分野に入るときは、何を学ぶかを先に説明する */
   if(Q.item&&(Q.item.type==='lesson'||Q.item.type==='new')&&A.focus!==Q.item.f+'|'+Q.item.l){A.focus=Q.item.f+'|'+Q.item.l;save();Q.pending=Q.item;X.go('aiintro');return;}
   if(Q.item&&Q.item.type==='lesson'){X.go('ailesson');return;}
-  if(Q.item)Q.lastQ=Q.item.it.src||Q.item.it;
-  X.go('ai');startTimer();}
+  present();}
+function present(){if(Q.item){Q.lastQ=Q.item.it.src||Q.item.it;A.cur=Q.item;save();}X.go('ai');startTimer();}
 function answer(i,to){stopTimer();var item=Q.item,it=item.it,ok=!to&&X.isRight(it,i),sec=Math.round((Date.now()-Q.t0)/1000),tg=X.targetOf(it,item.l);
   Q.picked=i;Q.timeout=!!to;Q.sec=sec;Q.r=X.classify(ok,sec,tg,to);
   /* 本番タイマーでないときは「遅い」で弱点にしすぎないよう、目安を超えたら slow とだけ記録する */
   X.logAnswer({t:Date.now(),f:item.f,l:item.l,s:item.key,q:X.qid(it),r:Q.r,sec:sec,tg:tg,pick:i,ai:item.type});
-  var s0=st(item.f,item.l);Q.before={st:s0.st,m:s0.m};
+  A.cur=null;
   update(item,Q.r);
   /* 型チェックは実践の問題で間違えたときだけ（正解したときは出さない。2026-11-16 ユーザー指示） */
-  if(Q.r==='wrong'&&item.type!=='check'&&item.type!=='diag0'&&item.type!=='place'&&item.stIdx>=3){var steps=buildDiag(item);if(steps.length)Q.diag={item:item,steps:steps,i:0,pick:null,pending:true};}
+  if(Q.r==='wrong'&&item.type!=='check'&&item.type!=='diag0'&&item.type!=='place'&&item.stIdx>=3){var steps=buildDiag(item);if(steps.length){Q.diag={item:item,steps:steps,i:0,pick:null,pending:true};A.diag=Q.diag;}}
+  save();
   X.render();var r=X.inner().querySelector('.result');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'});}
 
 X.aiQ=function(){return Q;};
 X.acts.ai=function(){load();Q={};X.go('aihome');};
 X.acts.aigo=function(){if(!A.placed&&!A.pl)startPlace();show();};
 X.acts.aihomego=function(){Q.checkResult=null;X.go('aihome');};
-X.acts.aiintrogo=function(){var it=Q.pending;Q.pending=null;Q.item=it;if(it.type==='lesson'){X.go('ailesson');return;}Q.lastQ=it.it.src||it.it;X.go('ai');startTimer();};
+X.acts.aiintrogo=function(){var it=Q.pending;Q.pending=null;Q.item=it;if(it.type==='lesson'){X.go('ailesson');return;}present();};
 X.acts.aiexamgo=function(){startCheck(A.level);show();};
 X.acts.aipick=function(b){if(b.dataset.i==='dk'){answer('dk',false);return;}var i=+b.dataset.i;if(X.isMulti(Q.item.it)){X.toggleSel(Q.sel,i);X.render();}else answer(i,false);};
 X.acts.aisubmit=function(){answer(Q.sel.slice(),false);};
 X.acts.ainext=function(){if(Q.checkResult&&X.state().view==='aicheck'){Q.checkResult=null;}
   if(Q.diag&&Q.diag.pending){Q.diag.pending=false;Q.picked=null;Q.diagShow=true;X.go('ai');return;}
-  Q.diag=null;show();};
+  Q.diag=null;A.diag=null;save();show();};
 X.acts.aidiag=function(b){var d=Q.diag,step=d.steps[d.i];d.pick=b.dataset.i==='dk'?'dk':+b.dataset.i;var ok=d.pick===step.a;
-  diagResult(step,ok);if(!ok)d.failed=true;X.render();};
+  diagResult(step,ok);if(!ok)d.failed=true;save();X.render();};
 X.acts.aidiagnext=function(){var d=Q.diag;
-  if(d.failed||d.i+1>=d.steps.length){Q.diag=null;show();return;}
-  d.i++;d.pick=null;X.render();};
+  if(d.failed||d.i+1>=d.steps.length){Q.diag=null;A.diag=null;save();show();return;}
+  d.i++;d.pick=null;save();X.render();};
 X.acts.ailessondone=function(){var item=Q.item;X.markCleared(item.f,item.l,'lesson');show();};
 })();
