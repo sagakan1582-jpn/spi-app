@@ -150,7 +150,7 @@ function stageHead(item){var k=streakOf(item);
 function header(item){if(staged(item))return stageHead(item);return X.bar(item.type==='check'?'昇格試験 '+item.ci+'/'+item.cn:item.type==='place'?'実力診断 '+item.pn:item.f+'・'+STAGES[item.stIdx].name);}
 var SUP_IC='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg>';
 function sup(t){return '<div class="sup"><span class="sup-ic" aria-hidden="true">'+SUP_IC+'</span><div class="sup-b">'+t+'</div></div>';}
-function stName(f,l){var s=st(f,l);return s.m>=3?'習得':s.m===2?'未確認':s.st>1||s.m>=1?'学習中':'未学習';}
+function stName(f,l){var s=st(f,l);return s.m>=3?'習得':s.m===2?'最終確認':s.st>1||s.m>=1?'学習中':'未学習';}
 function viewHome(){var l=A.level,fs=order(l),done=fs.filter(function(f){return st(f,l).m>=3;}).length,wk=weakList(l),h=X.bar('AIにお任せ教育モード'),msg,btn;
   if(!A.placed){msg='はじめまして！まずは<b>あなたの実力を測ります</b>。分野ごとに本番と同じ形の問題を出すので、時間内に解いてね。';btn='実力診断を始める';}
   else if(ready(l)){msg='指標'+l+'の分野をすべて習得したね！<b>昇格試験</b>に合格すると、指標'+(nextLevel(l)||l)+'に上がれるよ。';btn='昇格試験を受ける';}
