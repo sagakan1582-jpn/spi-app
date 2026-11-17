@@ -129,7 +129,7 @@ function diagResult(step,ok){var item=Q.diag.item,s=st(item.f,item.l);
 
 /* ===== 画面 ===== */
 function stopTimer(){if(tick){clearInterval(tick);tick=null;}}
-function startTimer(){stopTimer();Q.t0=Date.now();var item=Q.item;if(!item||item.timer==='none')return;
+function startTimer(){stopTimer();Q.t0=Date.now();var item=Q.item;if(!item||item.timer==='none')return;X.barReset('aibar');
   var lim=X.targetOf(item.it,item.l)*1000;
   tick=setInterval(function(){var S=X.state();if(S.view!=='ai'||Q.picked!=null){stopTimer();return;}
     var b=document.getElementById('aibar'),left=1-(Date.now()-Q.t0)/lim;
@@ -178,7 +178,7 @@ function viewAI(){var item=Q.item,h,m=Q.showMsg;
   if(Q.diag&&Q.diagShow)return viewDiag();
   if(!item)return X.bar('AIにお任せ教育モード')+'<div class="clear"><div class="clear-badge">'+X.icon('big')+'</div></div>';
   var it=item.it;
-  h=header(item)+(m&&Q.picked==null?sup(m):'')+(Q.picked==null&&item.timer!=='none'?'<div class="timer" role="img" aria-label="制限時間"><i id="aibar"></i></div>':'')+'<div class="q">'+it.q+'</div>'+X.choicesHtml(it,Q.picked,Q.sel,'aipick','aisubmit',true);
+  h=header(item)+(m&&Q.picked==null?sup(m):'')+(Q.picked==null&&item.timer!=='none'?'<div class="timer" role="img" aria-label="制限時間"><i id="aibar"'+X.barAttr(Q.t0,X.targetOf(it,item.l)*1000)+'></i></div>':'')+'<div class="q">'+it.q+'</div>'+X.choicesHtml(it,Q.picked,Q.sel,'aipick','aisubmit',true);
   if(Q.picked!=null){var ok=X.isRight(it,Q.picked);
     h+='<div class="result"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?X.icon('ok')+'正解':X.icon('ng')+(Q.timeout?'時間切れ':'不正解'))+'<span class="sec'+(Q.r==='slow'?' over':'')+'">'+Q.sec+'秒</span></div>';
     if(item.type!=='check'||!ok)h+='<div class="calc"><b>'+X.inwHead(it,item.f)+'</b>　'+X.inwText(it,item.f)+'</div>'+(it.fig?X.figHtml(it.fig):'')+'<div class="calc">'+(it.calc||'')+'</div><div class="calc"><b>答え</b>　'+X.ansText(it)+'</div>';

@@ -104,7 +104,7 @@ function viewTop(){var h=X.bar('模擬テスト'),hs=hist().slice(-5).reverse();
     hs.forEach(function(x){h+='<tr><td>'+fmt(x.t)+'</td><td>'+(x.est==null?'-':x.est)+'</td><td>'+x.ok+' / '+x.n+'</td></tr>';});h+='</table></div>';}
   return h;}
 function viewQ(){var c=T.cur,h=X.bar((T.i+1)+'問目');
-  h+='<div class="timer mock-all" role="img" aria-label="全体の残り時間"><i id="mall"></i></div><div class="timer" role="img" aria-label="制限時間"><i id="mbar"></i></div>';
+  h+='<div class="timer mock-all" role="img" aria-label="全体の残り時間"><i id="mall" style="width:'+Math.max(0,100-(Date.now()-T.t0)/TOTAL*100)+'%"></i></div><div class="timer" role="img" aria-label="制限時間"><i id="mbar"'+X.barAttr(T.qt0,limOf(c)*1000)+'></i></div>';
   h+='<div class="q">'+c.it.q+'</div>'+X.choicesHtml(c.it,null,T.sel,'mockpick','mocksubmit');
   return h;}
 function viewRes(){var r=T.res,h=X.bar('模擬テスト');

@@ -57,7 +57,7 @@ var titleV=document.getElementById('title'), appV=document.getElementById('app')
 var S={view:'menu'};
 var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'aihome',reset:'menu',howto:'menu',ailesson:'aihome',aicheck:'aihome',aihome:'menu',aiplace:'aihome',aiintro:'aihome',aiexam:'aihome',mock:'menu',mockq:'mock',mockres:'mock'};
 /* AIモード（js/ai.js）が使う共通の部品 */
-var SPI=window.SPI={views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
+var SPI=window.SPI={barAttr:barAttr,barReset:barReset,views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
   inner:function(){return inner;},logAnswer:function(r){logAnswer(r);},classify:classify,targetOf:targetOf,qid:qid,
   shuffle:function(x){return shuffle(x);},cleared:function(f,l,k){return cleared(f,l,k);},
   markCleared:function(f,l,k){P[f+'|'+l+'|'+k]=1;save();},
@@ -129,7 +129,7 @@ function render(){
       h+='<button class="item compact'+(i===recStage(S.field,S.level)?' rec':'')+'" data-act="stage" data-i="'+i+'"'+(open?'':' disabled')+'>'+(i===recStage(S.field,S.level)?ICON.rec:'')+'<span class="num">'+(i+1)+'</span><span class="name">'+s.name+'</span>'+(done?ICON.check:'')+ICON.chev+'</button>';});
   } else if(S.view==='quiz'){
     var it=S.pool[S.idx];
-    h=bar(STAGES[S.stage].name)+(S.picked==null&&strictTimer()?'<div class="timer" role="img" aria-label="制限時間"><i id="tbar"></i></div>':'')+'<div class="q">'+it.q+'</div>'+choicesHtml(it,S.picked,S.sel,'pick','submit',true);
+    h=bar(STAGES[S.stage].name)+(S.picked==null&&strictTimer()?'<div class="timer" role="img" aria-label="制限時間"><i id="tbar"'+barAttr(S.t0,targetOf(it,S.level)*1000)+'></i></div>':'')+'<div class="q">'+it.q+'</div>'+choicesHtml(it,S.picked,S.sel,'pick','submit',true);
     if(S.picked!=null){var ok=isRight(it,S.picked);
       h+='<div class="result"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON.ok+'正解':ICON.ng+(S.timeout?'時間切れ':'不正解'))+'<span class="sec'+(S.lastR==='slow'?' over':'')+'">'+S.lastSec+'秒</span></div>'+'<div class="calc"><b>'+(it.inwh||(S.field==='順列・組合せ'?'整理':'内訳'))+'</b>　'+SPI.inwText(it)+'</div>'+figHtml(it.fig)+'<div class="calc">'+it.calc+'</div><div class="calc"><b>答え</b>　'+ansText(it)+'</div>'+
         '<button class="next" data-act="next">次へ</button></div>';}
@@ -154,9 +154,13 @@ function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(M
 function instPool(p){return p.map(inst).filter(function(x){return x;});}
 function startStage(i){S.stage=i;S.hist=[];S.base=BANK[S.field][S.level][STAGES[i].key];S.pool=instPool(shuffle(S.base));S.idx=0;S.picked=null;S.view='quiz';}
 var tick=null;
+/* タイマーのバーは描き直すたびに残り時間の幅で作る（選択で描き直したときに一瞬満タンに戻らないように） */
+/* 新しい問題を始めた直後は、前の問題の時刻で描かれたバーをアニメーションなしで満タンに戻す */
+function barReset(id){var b=document.getElementById(id);if(!b)return;b.style.transition='none';b.style.width='100%';b.className='';void b.offsetWidth;b.style.transition='';}
+function barAttr(t0,lim){var left=Math.max(0,1-(Date.now()-t0)/lim);return ' class="'+(left>0.5?'':left>0.2?'warn':'end')+'" style="width:'+(left*100)+'%"';}
 function stopTimer(){if(tick){clearInterval(tick);tick=null;}}
 function startQuestion(){stopTimer();S.t0=Date.now();S.timeout=false;S.sel=[];
-  if(!strictTimer())return;var lim=targetOf(S.pool[S.idx],S.level)*1000;
+  if(!strictTimer())return;barReset('tbar');var lim=targetOf(S.pool[S.idx],S.level)*1000;
   tick=setInterval(function(){var b=document.getElementById('tbar');var left=1-(Date.now()-S.t0)/lim;
     if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
     if(left<=0){stopTimer();answer(-1,true);}},200);}
