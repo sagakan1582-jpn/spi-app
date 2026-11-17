@@ -61,10 +61,10 @@ function nextQ(){if(T.i>=60||Date.now()-T.t0>=TOTAL){finish();return;}
   T.cur=pickItem(l,w,only);if(!T.cur){finish();return;}
   /* 本番形式：計算はその分野に組問（2タブ）があれば組で出す（本番は表の初回以外すべて2タブ） */
   /* 最初の表は本番どおりタブの多い組（4タブを優先） */
-  if(slot==='t'&&window.SETCORE){var tc=[];[4,5].forEach(function(l2){SETCORE.list(TBL[0],l2).forEach(function(t){tc.push({l:l2,t:t});});});var best=null;
+  if(slot==='t'&&window.SETCORE){var tc=[];[4,5].forEach(function(l2){SETCORE.list(TBL[0],l2).forEach(function(t){if(t.tabs===4)tc.push({l:l2,t:t});});});var best=null;
     for(var n2=0;n2<12&&tc.length;n2++){var o=tc[Math.floor(Math.random()*tc.length)],m=SETCORE.make(TBL[0],o.t);if(m&&(!best||m.subs.length>best.m.subs.length))best={l:o.l,m:m};if(best&&best.m.subs.length>=4)break;}
     if(best){T.cur={f:TBL[0],l:best.l,it:best.m.subs[0]};startSet(TBL[0],best.l,best.m,'c');return;}}
-  if((k==='c'||k==='e')&&window.SETCORE&&SETCORE.list(T.cur.f,l).length){var cs=null,ts=SETCORE.list(T.cur.f,l);for(var n=0;n<6&&!cs;n++)cs=SETCORE.make(T.cur.f,ts[Math.floor(Math.random()*ts.length)]);
+  if((k==='c'||k==='e')&&window.SETCORE&&SETCORE.list(T.cur.f,l).length){var cs=null,ts=SETCORE.list(T.cur.f,l).filter(function(t){return !t.tabs;});for(var n=0;n<6&&!cs;n++)cs=SETCORE.make(T.cur.f,ts[Math.floor(Math.random()*ts.length)]);
     if(cs){if(k==='e')T.inf+=cs.subs.length;startSet(T.cur.f,l,cs,k);return;}}
   T.cur.k=X.isMulti(T.cur.it)?'m':(k==='m'?'e':k);if(T.cur.k==='m')T.cb++;if(T.cur.k!=='c')T.inf++;
   T.qt0=Date.now();T.sel=[];X.go('mockq');run();}

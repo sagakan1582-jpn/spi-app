@@ -182,7 +182,7 @@ function curLim(){if(CS().set)return setLim();return targetOf(S.pool[S.idx],S.le
 function go(v){if(v!=='quiz'&&v!=='aiset'&&v!=='mockset')stopTimer();S.view=v;render();appV.scrollTop=0;if(v==='quiz'&&S.picked==null&&!(CS().set&&Z.graded))startQuestion();}
 /* ===== 本番形式の画面：共通の文章・タブ・問い。全部のタブを解いて最後の「次へ」でまとめて正誤を出す ===== */
 /* 問題集の本物の組を先に、作った組をそのあとに出す */
-function setOrder(){var xs=SETCORE.list(S.field,S.level);return shuffle(xs.filter(function(t){return /^set-book-/.test(t.id);})).concat(shuffle(xs.filter(function(t){return !/^set-book-/.test(t.id);})));}
+function setOrder(){var xs=SETCORE.list(S.field,S.level).filter(function(t){return !t.tabs;});return shuffle(xs.filter(function(t){return /^set-book-/.test(t.id);})).concat(shuffle(xs.filter(function(t){return !/^set-book-/.test(t.id);})));}
 /* 組問の画面の状態 Z：分野別では S、AIモードでは ai.js の状態。head（見出し）・strict（タイマー）・level・onGraded・onNext を持つ */
 var Z={};
 function setStart(){stopTimer();Z.t0=Date.now();Z.timeout=false;if(!Z.strict())return;barReset('tbar');var lim=setLim();
