@@ -5,7 +5,7 @@
 (function(){
 var B=BANK['推論'];
 function add(lv,o){B[lv].real=B[lv].real||[];B[lv].real.push(o);}
-function tp(lv,id,bk,make,verify){add(lv,{id:'bk'+id,bk:bk,make:make,verify:verify});}
+var MY=[];function tp(lv,id,bk,make,verify){var o={id:'bk'+id,bk:bk,make:make,verify:verify};MY.push([lv,id,o]);add(lv,o);}
 function rg(a,b,s){s=s||1;var r=[];for(var i=a;i<=b;i+=s)r.push(i);return r;}
 function T(h,r){return {table:{head:h,rows:r.slice(0,8)}};}
 var RM=['Ⅰ','Ⅱ','Ⅲ','Ⅳ','Ⅴ','Ⅵ'];
@@ -806,6 +806,25 @@ function m87(id,fix,ask,orig){tp(6,id,'87',function(R){var s=R.pick([0,1,2,3,4,5
    {inw:'「PとQ」は向かい合わせのセット、「RS」は隣のセット<br>'+N[fix]+' ＝ '+SE[s],fig:f87(r),calc:'向かい合わせの3組（①④、②⑤、③⑥）のどれがPとQかで場合分けして書き出すと'+r.length+'通り（表は8通りまで）。'+N[ask]+'は '+a.map(function(i){return SE[i];}).join(''),v:{f:fix,s:s,a:ask}});},
   function(v){return v87(v.f,v.s,v.a);});}
 m87('87-1',3,0,1);m87('87-2',5,2,5);
+/* ===== 実践（単純な数値）：real と同じ問題文・同じ形式で、切りのよい数値だけを使う版を applied に入れる =====
+   数のない推論・もともと小さい数の推論は real と同じ。数値の大きい問題は、下の条件を満たす数値になるまで作り直す。 */
+function m10(x){return x%10===0;}
+var SIMPLE={
+ '47':function(v){return m10(v.t);},
+ '49-1':function(v){return v.p[2]%50===0&&v.p[3]%50===0;},'49-2':function(v){return v.p[2]%50===0&&v.p[3]%50===0&&m10(v.p[1])&&m10(v.p[4]);},
+ '56-1':function(v){return v.p[0]===20||v.p.every(function(x){return x%5===0;});},'56-2':function(v){return v.p[0]===20||v.p.every(function(x){return x%5===0;});},
+ '65-1':function(v){return v.p[0]===100;},'65-2':function(v){return v.p[0]===100;},'65-3':function(v){return v.p[0]===100&&v.p[3]!==75;},
+ '66':function(v){return m10(v.p[0]);},
+ '68-2':function(v){return m10(v.m);},
+ '70-1':function(v){return v.p[0]%1===0&&v.p[1]%1===0;},'70-2':function(v){return v.p[0]%1===0&&v.p[1]%1===0;},
+ '72-1':function(v){return v.s%2===0;},
+ '77':function(v){return v.p.every(m10);},
+ '78-1':function(v){return v.p.every(function(x){return x%50===0;})||v.k===2;},'78-2a':function(v){return v.p[0]%50===0&&v.p[1]%50===0;},'78-2b':function(v){return v.p[0]%50===0&&v.p[2]%50===0;},
+ '79-1':function(v){return v.p.every(m10);}
+};
+MY.forEach(function(t){var lv=t[0],id=t[1],o=t[2],f=SIMPLE[id];
+  B[lv].applied=B[lv].applied||[];
+  B[lv].applied.push({id:o.id+'s',bk:o.bk,verify:o.verify,make:function(R){for(var k=0;k<60;k++){var x=o.make(R);if(x&&(!f||f(x.v)))return x;}return null;}});});
 /* ===== 解き方（新しい型）：推論 指標6に追加 ===== */
 var LS=(LESSON['推論']=LESSON['推論']||{});LS[6]=LS[6]||[];
 [
