@@ -19,8 +19,9 @@ function CH(R,ans,ws,fmt,n,none,step){var S=fmt(ans),vs=[ans],seen={};seen[S]=1;
 /* 文字の選択肢（固定の並び）。答えが無ければ「いずれでもない」 */
 function FIX(list,ans,noneKey){var c=list.slice();if(noneKey)c.push(NONE[noneKey]);var a=c.indexOf(ans);if(a<0)a=c.length-1;return {c:c,a:a};}
 function VF(fn){return function(v,o){var s=fn(v),L=o.c[o.c.length-1];if(/いずれでもない$/.test(L)&&o.c.indexOf(s)<0)return L;return s;};}
-function T(f,l,bk,gen,build,ver,orig){BANK[f]=BANK[f]||{};BANK[f][l]=BANK[f][l]||{};var B=BANK[f][l];['concept','practice','applied','real'].forEach(function(s){B[s]=B[s]||[];});
- B.real.push({id:'bk'+bk,bk:bk,_orig:orig,_build:build,
+var REG=[];
+function T(f,l,bk,gen,build,ver,orig){REG.push({f:f,l:l,bk:bk,gen:gen,build:build,ver:ver});BANK[f]=BANK[f]||{};BANK[f][l]=BANK[f][l]||{};var B=BANK[f][l];['concept','practice','applied','real'].forEach(function(s){B[s]=B[s]||[];});
+ B.real.push({id:'bk'+bk,bk:bk,_orig:orig,_build:build,_gen:gen,
   make:function(R){var v=null;for(var i=0;i<400&&!v;i++)v=gen(R);if(!v)return null;var o=build(v,R);o.v=v;o.bk=bk;return o;},
   verify:VF(ver)});}
 function LS(f,l,steps){LESSON[f]=LESSON[f]||{};LESSON[f][l]=LESSON[f][l]||[];steps.forEach(function(s){LESSON[f][l].push(s);});}
@@ -666,6 +667,24 @@ T(JO,4,'201-2',g201,function(v,R){var c=['海外から輸入する鉱物性燃�
   fig:{table:{head:['','2006年度','2007年度'],rows:[['天然ガス',v.q06+'兆円',v.q07+'兆円'],['原油',v.p06+'兆円',v.p07+'兆円']]}},
   calc:v.q07+' ÷ '+v.q06+' ＝ '+k(v.q07/v.q06,3)+' → 約'+v.X+'倍<br>原油（'+v.p07+'兆円）の方が多いので、A・Dは誤り。Cは文中にない'};},
  function(v){return Math.abs(v.q07/v.q06-v.X)<0.05&&v.q07<v.p07?'約'+v.X+'倍に増えた。':'';},o201);
+
+/* ===================== 単純な数値版（実践①＝applied） =====================
+   同じ問題文・同じ選択肢・同じ bk で、数値だけを切りのよい数にしたもの。id は real の id + 's'。
+   mode：f＝切りのよい数を選ぶ R（SR）で作り、数値と答えが切りのよい数のものだけ使う／n＝SRで作るだけ（整数の組合せなど答えの形が決まっている問題）／r＝real と同じ作り方（もともと単純な数値）／関数＝専用の作り方 */
+function sn(n){if(n%1===0)return n<=10||n%5===0;return (n*10)%1===0&&n<10;}
+function allS(v){if(typeof v==='number')return sn(v);if(v&&typeof v==='object'){for(var q in v)if(!allS(v[q]))return false;}return true;}
+function ansS(o){var s=String(o.c[o.a]),mm=s.match(/\d+(\.\d+)?/g)||[];return mm.every(function(x){return sn(+x);});}
+function mkSR(R){return {int:function(a,b){var c=[],st,x;for(var i=0;i<2;i++){st=[10,5][i];c=[];for(x=Math.ceil(a/st)*st;x<=b;x+=st)c.push(x);if(c.length>=2)break;}
+  if(c.length<2){c=[];for(x=a;x<=b;x++)if(x<=10)c.push(x);}return c.length?R.pick(c):R.int(a,b);},
+ pick:function(x){var c=x.filter(function(y){return typeof y!=='number'||sn(y);});return R.pick(c.length?c:x);},shuffle:R.shuffle};}
+function sRow182(R){var h=R.int(10,13)*50,c=R.int(3,5)*50,o=R.int(2,4)*50,n=R.int(2,5)*10,ot=1000-h-c-o-n;return ot>=10&&ot<=50?[h,c,o,n,ot]:null;}
+var SIMPLE={'182-1':function(R){var r=[sRow182(R),sRow182(R),sRow182(R)];if(!r[0]||!r[1]||!r[2])return null;var w=r[0].slice(0,4).map(function(x,i){return x*WT[i];}).sort(function(a,b){return b-a;});return w[0]===w[1]?null:{r:r,f:R.int(0,3)};},
+ '182-2':function(R){var r=[sRow182(R),sRow182(R),sRow182(R)];if(!r[0]||!r[1]||!r[2]||r[1][3]===r[2][3])return null;return {r:r,f:R.int(0,3)};},
+ '183-2':function(R){var v=g183(mkSR(R)),X=R.int(1,3)*10,Y=R.int(4,8)*10,Zd=R.int(X/10+1,Y/10-1)*10;v.t[0][3]=X;v.t[1][3]=Y;v.t[2][3]=Zd;if(!(X<Zd&&Zd<Y))return null;var p=Y-Zd,q=Zd-X,g=gcd(p,q);return p/g>5||q/g>5?null:v;},
+ '185-2':'r','201-1':'r','201-2':'r','192':'n','195':'n','198-1':'n','190':'n','194':'n','197-1':'n','197-2':'n','177-2':'n'};
+REG.forEach(function(t){var md=SIMPLE[t.bk]||'f';BANK[t.f][t.l].applied.push({id:'bk'+t.bk+'s',bk:t.bk,
+ make:function(R){var S=mkSR(R);for(var i=0;i<3000;i++){var v=typeof md==='function'?md(R):t.gen(md==='r'?R:S);if(!v)continue;if(md==='f'&&!allS(v))continue;var o=t.build(v,R);if(md==='f'&&!ansS(o))continue;o.v=v;o.bk=t.bk;return o;}return null;},
+ verify:VF(t.ver)});});
 
 /* ===================== 新しい型の解き方（LESSON） ===================== */
 LS(SP,4,[

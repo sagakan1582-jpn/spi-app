@@ -29,8 +29,8 @@ function minInfo(ws,facts,key){var n=facts.length,best=null,cnt=0;
    var ks=uniq(r.map(key));if(ks.length===1){if(!best){best=bits;cnt=1;}else cnt++;}}}
  return best?(cnt===1?best:null):'none';}
 function T(lv,bk,O,gen,build){
- var t={id:'bk'+bk,bk:bk,orig:O,_b:build,
-  make:function(R){var v,o;for(var n=0;n<100&&!o;n++){v=gen(R);o=v&&build(v);}if(!o)return null;o.v=v;o.bk=bk;o.id='bk'+bk+'-'+JSON.stringify(v).replace(/\W/g,'');return o;},
+ var t={id:'bk'+bk,bk:bk,orig:O,_b:build,_g:gen,
+  make:function(R){var v,o;for(var n=0;n<100&&!o;n++){v=gen(R);o=v&&build(v);}if(!o)return null;o.v=v;o.bk=bk;o.id=t.id+'-'+JSON.stringify(v).replace(/\W/g,'');return o;},
   verify:function(v){var o=build(v);return Array.isArray(o.a)?o.a.map(function(i){return o.c[i];}):o.c[o.a];}};
  put(lv,t);return t;}
 /* ===== 推論【正誤】問1〜6：発言P・Q・Rの包含。発言の割り当て（どの発言がP・Q・Rか）を変える ===== */
@@ -489,4 +489,24 @@ LS[7].push(
  {h:'ステップ3 空白を埋める',p:'両方話せる人の最少 ＝ 40 − 11 − 22 ＝ <mark>7人</mark><br>形で覚える：<mark>k個を全部話せる人の最少 ＝ 人数の合計 −（k−1）×全体</mark><br>2カ国語：29＋18−1×40＝7　／　3カ国語（仏・独・中）：32＋29＋20−2×40＝1',p2:'答えが0以下なら「少なくとも1人いる」とはいえない'},
  {h:'答え',p:'7人'}
 );
+/* ===== 実践（単純な数値）：real と同じ問題文・同じ形式で、数を小さく・切りのよい数にした版（id は real の id＋'s'） ===== */
+function ev(a){return a.filter(function(x){return x%2===0;});}
+var SG={
+ '13':function(R){var c=R.pick([6,8,10,12]),e=R.pick([2,4]),a=R.pick([2,4]),b=R.pick([2,4]);return {a:a,b:b,c:c,e:e,T:R.pick(ev(rg(c+2,c+e+a+b)))};},
+ '23-1':function(R){return {a:R.int(1,3),b:R.int(1,2),c:R.int(2,3),e:R.int(1,2),ph:R.pick([160,170,180]),lo:160,hi:166};},
+ '23-2':function(R){var lo=R.pick([160,170]);return {a:R.int(1,3),b:R.int(1,2),c:R.int(2,3),e:R.int(1,2),ph:170,lo:lo,hi:lo+R.pick([5,6])};},
+ '24-1':function(R){var a=R.pick([100,200,300]),b=R.pick([100,200]),c=R.pick([100,200,300]);var ds=uniq(s24({a:a,b:b,c:c}).map(function(w){return Math.abs(w[2]);})).filter(function(d){return d>0;});return a===b?null:{a:a,b:b,c:c,d:R.pick(ds),K:1000};},
+ '24-2':function(R){var a=R.pick([100,200,300]),b=R.pick([100,200]),c=R.pick([100,200,300]);return a===b?null:{a:a,b:b,c:c,K:1000};},
+ '32':function(R){var N=R.pick([100,200]),m=10,ws=w32(N,m).filter(function(w){return w.every(function(x){return x%10===0;});}),s=[];if(!ws.length)return null;
+  for(var t=0;t<3;t++){var xy=R.shuffle([0,1,2,3]).slice(0,2).sort(),w=R.pick(ws);s.push([xy[0],w[xy[0]],xy[1],w[xy[1]]+(R.int(0,1)?0:R.pick([-10,10]))]);}return {N:N,m:m,s:s};},
+ '34':function(R){var N=R.pick([10,20]),n=[0,1,2,3].map(function(){return R.int(N/2,N-1);}),v={N:N,n:n,s:[]};
+  R.shuffle([[0,1],[0,2],[0,3],[1,2],[1,3],[2,3],[0,1,2],[0,1,3],[0,2,3],[1,2,3]]).slice(0,3).forEach(function(x){x.sort();v.s.push([x,Math.max(1,mn34(v,x)+R.pick([0,0,1]))]);});return v;},
+ '37-1':G37s,'37-2':G37s};
+function G37s(R){var c=R.pick([20,50,100]),ex=R.pick([10,20]),u=c+ex,w=R.pick([10,20,30,40,50,60].filter(function(x){return x<u&&x>ex;})),k=R.pick([2,4,5,6,8].filter(function(x){return x<ex;}));if(!w)return null;var wp=w-k;if(wp<1||wp>c)return null;
+ var v={c:c,u:u,w:w,wp:wp};v.o1=o37(R,ex,6);v.o2=o37(R,ex-k,6);return v;}
+[6,7].forEach(function(lv){var b=BKS[lv];b.applied=b.applied||[];b.real.filter(function(t){return /^bk/.test(t.id||'')&&t.bk&&parseInt(t.bk)<=44&&(t._b||/^bk(17|42-)/.test(t.id));}).forEach(function(t){
+ if(!t.make){var o={};for(var k in t)o[k]=t[k];o.id=t.id+'s';b.applied.push(o);return;}
+ var g=SG[t.bk]||t._g,bd=t._b,s={id:t.id+'s',bk:t.bk,orig:t.orig,_b:bd,_g:g,
+  make:function(R){var v,o;for(var n=0;n<100&&!o;n++){v=g(R);o=v&&bd(v);}if(!o)return null;o.v=v;o.bk=t.bk;o.id=s.id+'-'+JSON.stringify(v).replace(/\W/g,'');return o;},verify:t.verify};
+ b.applied.push(s);});});
 })();

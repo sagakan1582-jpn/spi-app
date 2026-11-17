@@ -52,7 +52,7 @@ function bookOpts(ch,bk){var B=BO[bk];if(!B)return;var hasN=ch.c.indexOf(NONE)>=
  var c=B[0].map(function(x){return x+u;});if(hasN)c.push(NONE);ch.c=c;ch.a=c.indexOf(val);}
 function mk(ch,q,inw,fig,calc,bk,v){bookOpts(ch,bk);ch.q=q;ch.inw=inw;ch.fig=fig;ch.calc=calc;ch.bk=bk;ch.v=v;return ch;}
 function vs(o,s){return o.c.indexOf(s)>=0?s:(o.c.indexOf(NONE)>=0?NONE:s);}
-function add(F,l,bk,make,verify){if(BANK[F]&&BANK[F][l])BANK[F][l].real.push({id:'bk'+bk,bk:bk,make:make,verify:verify});}
+var ALL=[];function add(F,l,bk,make,verify){if(BANK[F]&&BANK[F][l]){var it={id:'bk'+bk,bk:bk,make:make,verify:verify};BANK[F][l].real.push(it);ALL.push([F,l,it]);}}
 /* 総当たり用 */
 function perms(n,cb){var a=rng(0,n-1),u=[];(function g(t){if(t.length===n){cb(t);return;}for(var i=0;i<n;i++)if(!u[i]){u[i]=1;t.push(i);g(t);t.pop();u[i]=0;}})([]);}
 function seqs(len,k,cb){var t=[];(function g(){if(t.length===len){cb(t);return;}for(var i=0;i<k;i++){t.push(i);g();t.pop();}})();}
@@ -608,6 +608,14 @@ add(FK,5,'126-2',function(R){var d=d126(R),p=d[0],q=d[1],ex=R.pick([1,0])?0:R.in
 },function(v,o){var c=0,t=0,pw=v.p.map(function(f){return f[0]*4/f[1];}),qw=v.q.map(function(f){return f[0]*4/f[1];});
  seqs(2*v.n,3,function(x){var w=1,ok=0;for(var i=0;i<v.n;i++){var a=x[2*i],b=x[2*i+1];w*=pw[a]*qw[b];if(a!==v.ex&&((a+1)%3===b||a===b))ok=1;}t+=w;if(ok)c+=w;});return fs(fr(c,t));});
 
+
+/* ===================== 単純な数値版（実践①＝applied） ===================== */
+/* 同じ問題文・同じ選択肢形式で、数の候補のうち小さい半分から選ぶ（暗算ですぐ計算できる数）。0/1だけの候補（元の数値にするか・Eにするか）はそのまま */
+function SR(R){return {int:function(a,b){return R.int(a,a+Math.floor((b-a)/2));},shuffle:R.shuffle,
+ pick:function(a){if(a.length>1&&a.every(function(x){return typeof x==='number';})&&!a.every(function(x){return x===0||x===1;})){var s=a.slice().sort(num);return R.pick(s.slice(0,Math.ceil(s.length/2)));}return R.pick(a);}};}
+ALL.forEach(function(e){var it=e[2];BANK[e[0]][e[1]].applied.push({id:it.id+'s',bk:it.bk,make:function(R){return it.make(SR(R));},verify:it.verify});});
+BANK[FK][4].applied.push({id:'bk116-1s',bk:'116-1',q:Q116+'PがQに勝つ確率はどれだけか。',c:['1/6','5/12','1/3','1/2'],a:1,inw:'全ての目の出方は 6 × 6 ＝ 36通り。引き分けの6通りを除いた30通りの半分がPの勝ち',
+ fig:KH(['','通り'],[['全体','36'],['引き分け','6'],['Pの勝ち','!(36 − 6) ÷ 2']]),calc:'(36 − 6) ÷ 2 ＝ 15<br>15/36 ＝ 5/12'});
 /* ===================== 解き方（問題集で新しく出た型の例題） ===================== */
 function m(x){return '<mark>'+x+'</mark>';}
 function LS(F,l,h,q,s1,fig,calc,ans){var A=(LESSON[F]=LESSON[F]||{});A[l]=A[l]||[];A[l].push({h:'例題（'+h+'）',q:q},{h:'ステップ1 条件を見つける',p:s1},{h:'ステップ2 表に書いて計算する',fig:fig,p2:'<div class="formula">'+calc.join('</div><div class="formula">')+'</div>'},{h:'答え',p:ans});}
