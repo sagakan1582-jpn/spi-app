@@ -41,10 +41,11 @@ function choicesHtml(it,picked,sel,act,sub,dk){var h='<div class="choices">';
 function toggleSel(sel,i){var k=sel.indexOf(i);if(k>=0)sel.splice(k,1);else sel.push(i);}
 /* ===== 本番形式（2タブの組問）：実践②のあとの段階。組があるときだけ出す ===== */
 var SETST={key:'set',name:'本番形式',win:3,need:2,set:true};
-function stl(f,l){return (window.SETCORE&&SETCORE.list(f,l).length)?STAGES.concat([SETST]):STAGES;}
+function stl(f,l){if(l===0)return GSTAGES;return (window.SETCORE&&SETCORE.list(f,l).length)?STAGES.concat([SETST]):STAGES;}
 function CS(){return stl(S.field,S.level)[S.stage];}
 function targetOf(it,l){return it.sec||TARGET_SEC[l]||90;}
-function strictTimer(){return (CS().key===TIMER.stage||CS().set)&&S.level>=TIMER.fromLevel;}
+function strictTimer(){if(S.level===0)return CS().key==='real';return (CS().key===TIMER.stage||CS().set)&&S.level>=TIMER.fromLevel;}
+function lvName(l){return l===0?'言語':'指標'+l;}
 function cleared(f,l,s){return !!P[f+'|'+l+'|'+s];}
 function stagesCleared(f,l){var n=0;stl(f,l).forEach(function(s){if(cleared(f,l,s.key))n++;});return n;}
 function hasContent(f,l){return !!(BANK[f]&&BANK[f][l]);}
@@ -125,13 +126,14 @@ function render(){
     LEVELS.forEach(function(l){var has=levelHas(l),open=levelOpen(l);
       h+='<button class="item compact'+(l===recLevel()?' rec':'')+'" data-act="level" data-l="'+l+'"'+(open?'':' disabled')+'>'+(l===recLevel()?ICON.rec:'')+'<span class="num">'+l+'</span><span class="name">指標'+l+'</span>'+
         (has&&levelDone(l)?ICON.check:'')+(open?ICON.chev:'')+'</button>';});
+    if(levelHas(0))h+='<button class="item compact" data-act="level" data-l="0"><span class="num">言</span><span class="name">言語</span>'+(levelDone(0)?ICON.check:'')+ICON.chev+'</button>';
   } else if(S.view==='fields'){
-    h=bar('指標'+S.level);
+    h=bar(lvName(S.level));
     CURRICULUM[S.level].forEach(function(f){var has=hasContent(f,S.level),open=fieldOpen(f,S.level),n=stagesCleared(f,S.level);
       h+='<button class="item compact'+(f===recField(S.level)?' rec':'')+'" data-act="field" data-f="'+f+'"'+(open?'':' disabled')+'>'+(f===recField(S.level)?ICON.rec:'')+'<span class="name">'+f+'</span>'+
         (has?(n===stl(f,S.level).length?ICON.check:progHtml(n,stl(f,S.level).length)):'')+(open?ICON.chev:'')+'</button>';});
   } else if(S.view==='stages'){
-    h=bar(S.field+'・指標'+S.level);
+    h=bar(S.level===0?S.field:S.field+'・指標'+S.level);
     stl(S.field,S.level).forEach(function(s,i){var open=stageOpen(S.field,S.level,i),done=cleared(S.field,S.level,s.key);
       h+='<button class="item compact'+(i===recStage(S.field,S.level)?' rec':'')+'" data-act="stage" data-i="'+i+'"'+(open?'':' disabled')+'>'+(i===recStage(S.field,S.level)?ICON.rec:'')+'<span class="num">'+(i+1)+'</span><span class="name">'+s.name+'</span>'+(done?ICON.check:'')+ICON.chev+'</button>';});
   } else if(S.view==='quiz'&&CS().set||S.view==='aiset'||S.view==='mockset'){h=setHtml();
@@ -145,9 +147,9 @@ function render(){
     h=bar('SPIとは');
     ABOUT.forEach(function(sec){h+='<section class="lesson"><h2>'+sec.h+'</h2>'+(sec.p?'<div class="lp">'+sec.p+'</div>':'')+(sec.fig?figHtml(sec.fig):'')+(sec.p2?'<div class="lp">'+sec.p2+'</div>':'')+'</section>';});
   } else if(S.view==='lesson'){
-    h=bar(S.field+'・指標'+S.level);
+    h=bar(S.level===0?S.field:S.field+'・指標'+S.level);
     h+=lessonHtml(S.field,S.level);
-    h+='<button class="next" data-act="lessondone">'+STAGES[1].name+'へ</button>';
+    h+='<button class="next" data-act="lessondone">'+stl(S.field,S.level)[1].name+'へ</button>';
   } else if(S.view==='clear'){
     var nx=S.stage+1<stl(S.field,S.level).length;
     h=bar('')+'<div class="clear"><div class="clear-badge">'+ICON.big+'</div><div class="clear-text">'+CS().name+'<br>クリア</div>'+
@@ -162,7 +164,7 @@ function lessonHtml(f,l){var h='';((typeof ESSENCE!=='undefined'&&ESSENCE[f])||[
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function instPool(p){return p.map(inst).filter(function(x){return x;});}
 function startStage(i){if(stl(S.field,S.level)[i].set){S.stage=i;S.level=S.level;S.hist=[];S.slist=setOrder();S.sk=0;newSet();S.view='quiz';return;}
-  S.stage=i;S.hist=[];S.base=BANK[S.field][S.level][STAGES[i].key];S.pool=instPool(shuffle(S.base));S.idx=0;S.picked=null;S.view='quiz';}
+  S.stage=i;S.hist=[];S.base=BANK[S.field][S.level][stl(S.field,S.level)[i].key];S.pool=instPool(shuffle(S.base));S.idx=0;S.picked=null;S.view='quiz';}
 var tick=null;
 /* タイマーのバーは描き直すたびに残り時間の幅で作る（選択で描き直したときに一瞬満タンに戻らないように） */
 /* 新しい問題を始めた直後は、前の問題の時刻で描かれたバーをアニメーションなしで満タンに戻す */
