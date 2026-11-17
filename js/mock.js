@@ -117,7 +117,7 @@ function viewRes(){var r=T.res,h=X.bar('模擬テスト');
     h+='<button class="item compact mock-row" data-act="mockopen" data-i="'+i+'"><span class="num'+(ok?' ok':' ng')+'">'+(i+1)+'</span><span class="name">'+x.f+'・指標'+x.l+'</span><span class="sec">'+(x.r==='timeout'?'時間切れ':x.sec+'秒')+'</span></button>';
     if(T.open===i){var it=x.it;
       h+='<div class="result"><div class="q">'+it.q+'</div>'+(X.pickText(it,x.pick)?'<div class="calc"><b>選んだ答え</b>　'+X.pickText(it,x.pick)+'</div>':'')+
-        '<div class="calc"><b>'+X.inwHead(it,x.f)+'</b>　'+X.inwText(it,x.f)+'</div>'+(it.fig?X.figHtml(it.fig):'')+'<div class="calc">'+(it.calc||'')+'</div><div class="calc"><b>答え</b>　'+(X.isMulti(it)?X.ansText(it):'ABCDE'[it.a]+'　'+it.c[it.a])+'</div></div>';}});
+        '<div class="calc"><b>'+X.inwHead(it,x.f)+'</b>　'+X.inwText(it,x.f)+'</div>'+(it.fig?X.figHtml(it.fig):'')+'<div class="calc">'+(it.calc||'')+'</div><div class="calc"><b>答え</b>　'+(X.isMulti(it)?X.ansText(it):'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[it.a]+'　'+it.c[it.a])+'</div></div>';}});
   return h+'</div><button class="next" data-act="mocktop">もどる</button>';}
 X.mockT=function(){return T;};X.mockAns=function(i,to){answer(i,to);};X.mockLim=function(){return limOf(T.cur);};
 X.views.mock=viewTop;X.views.mockq=viewQ;X.views.mockres=viewRes;

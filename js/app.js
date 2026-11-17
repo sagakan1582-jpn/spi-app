@@ -17,7 +17,7 @@ function classify(ok,sec,target,to){return to?'timeout':!ok?'wrong':sec<=target?
 var RND={int:function(a,b){return a+Math.floor(Math.random()*(b-a+1));},pick:function(x){return x[Math.floor(Math.random()*x.length)];},shuffle:function(x){return shuffle(x);}};
 function inst(it){if(!it||!it.make)return it;for(var k=0;k<30;k++){try{var o=it.make(RND);if(o&&o.q){o.id=o.id||it.id;o.src=it;return o;}}catch(e){}}return null;}
 /* ===== 選択肢（単一選択と「すべて選ぶ」） ===== */
-var LT='ABCDEFGH';
+var LT='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 function isMulti(it){return Array.isArray(it.a);}
 function isRight(it,p){if(!isMulti(it))return p===it.a;if(!Array.isArray(p))return false;var a=it.a.slice().sort(),b=p.slice().sort();return a.length===b.length&&a.every(function(x,i){return x===b[i];});}
 function inAns(it,i){return isMulti(it)?it.a.indexOf(i)>=0:i===it.a;}
