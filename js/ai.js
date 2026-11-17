@@ -219,7 +219,7 @@ function show(){Q.picked=null;Q.sel=[];Q.timeout=false;Q.diagShow=false;Q.showMs
     if(A.cp!==ck){A.cp=ck;A.focus=Q.item.f+'|'+Q.item.l;save();if(Q.showMsg&&Q.showMsg.indexOf('合格！')>=0)Q.showMsg=null;Q.pending=Q.item;X.go('aiintro');return;}}
   if(Q.item&&Q.item.type==='lesson'){X.go('ailesson');return;}
   present();}
-function presentSet(){var item=Q.item,ts=SETCORE.list(item.f,item.l),bk=ts.filter(function(t){return t.book;}),c=null;
+function presentSet(){var item=Q.item,ts=SETCORE.list(item.f,item.l),bk=ts.filter(function(t){return /^set-book-/.test(t.id);}),c=null;
   for(var n=0;n<10&&!c;n++){var pool=bk.length&&Math.random()<0.5?bk:ts;c=SETCORE.make(item.f,pool[Math.floor(Math.random()*pool.length)]);}
   if(!c){var s0=st(item.f,item.l);s0.st=SETI-1;A.cur=null;save();show();return;}
   A.cur=item;save();

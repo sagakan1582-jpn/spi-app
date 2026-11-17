@@ -23,7 +23,7 @@ function makeBook(f,t){var D=(G.BOOKDEFS||{}),ds=t.book.map(function(b){return D
   return null;}
 /* 共通部分：先頭から同じ文字が続く範囲を、最後の「。」か「<br>」で区切る */
 function common(qs){var a=qs[0],n=a.length;qs.forEach(function(q){var i=0;while(i<n&&i<q.length&&q.charAt(i)===a.charAt(i))i++;n=i;});
-  var s=a.slice(0,n),k=Math.max(s.lastIndexOf('。')+1,s.lastIndexOf('<br>')+4,s.lastIndexOf('</div>')+6);return k>0?a.slice(0,k):null;}
+  var s=a.slice(0,n);function e(t){var i=s.lastIndexOf(t);return i<0?0:i+t.length;}var k=Math.max(e('。'),e('<br>'),e('</div>'));return k>0?a.slice(0,k):null;}
 function make(f,t){if(t.book)return makeBook(f,t);var s=findSrc(f,t.src);if(!s)return null;
   for(var n=0;n<40;n++){var o1;try{o1=s.it.make?s.it.make(RND):s.it;}catch(e){continue;}if(!o1||!o1.q||!o1.v)continue;
     var sp=split(o1.q);if(!sp)return null;var r;try{r=t.two(o1.v,o1);}catch(e){r=null;}if(!r)continue;var ch=choices(r);if(!ch)continue;

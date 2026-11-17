@@ -15,7 +15,9 @@ function classify(ok,sec,target,to){return to?'timeout':!ok?'wrong':sec<=target?
    {id:'…', make:function(R){ return {q,c,a,inw,fig,calc,sec?}; }} の形。出すたびに make を呼び、新しい数値の問題を作る。
    R は乱数の道具：R.int(min,max), R.pick(配列), R.shuffle(配列)。 */
 var RND={int:function(a,b){return a+Math.floor(Math.random()*(b-a+1));},pick:function(x){return x[Math.floor(Math.random()*x.length)];},shuffle:function(x){return shuffle(x);}};
-function inst(it){if(!it||!it.make)return it;for(var k=0;k<30;k++){try{var o=it.make(RND);if(o&&o.q){o.id=o.id||it.id;o.src=it;return o;}}catch(e){}}return null;}
+/* 計算誤差の表示（3.9000000000000004 など）を直す */
+function tidy(o){if(o&&Array.isArray(o.c))o.c=o.c.map(function(x){return typeof x==='string'?x.replace(/\d+\.\d{8,}/g,function(m){return String(Math.round(+m*1e6)/1e6);}):x;});return o;}
+function inst(it){if(!it||!it.make)return it;for(var k=0;k<30;k++){try{var o=tidy(it.make(RND));if(o&&o.q){o.id=o.id||it.id;o.src=it;return o;}}catch(e){}}return null;}
 /* ===== 選択肢（単一選択と「すべて選ぶ」） ===== */
 var LT='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 function isMulti(it){return Array.isArray(it.a);}
@@ -180,7 +182,7 @@ function curLim(){if(CS().set)return setLim();return targetOf(S.pool[S.idx],S.le
 function go(v){if(v!=='quiz'&&v!=='aiset'&&v!=='mockset')stopTimer();S.view=v;render();appV.scrollTop=0;if(v==='quiz'&&S.picked==null&&!(CS().set&&Z.graded))startQuestion();}
 /* ===== 本番形式の画面：共通の文章・タブ・問い。全部のタブを解いて最後の「次へ」でまとめて正誤を出す ===== */
 /* 問題集の本物の組を先に、作った組をそのあとに出す */
-function setOrder(){var xs=SETCORE.list(S.field,S.level);return shuffle(xs.filter(function(t){return t.book;})).concat(shuffle(xs.filter(function(t){return !t.book;})));}
+function setOrder(){var xs=SETCORE.list(S.field,S.level);return shuffle(xs.filter(function(t){return /^set-book-/.test(t.id);})).concat(shuffle(xs.filter(function(t){return !/^set-book-/.test(t.id);})));}
 /* 組問の画面の状態 Z：分野別では S、AIモードでは ai.js の状態。head（見出し）・strict（タイマー）・level・onGraded・onNext を持つ */
 var Z={};
 function setStart(){stopTimer();Z.t0=Date.now();Z.timeout=false;if(!Z.strict())return;barReset('tbar');var lim=setLim();
