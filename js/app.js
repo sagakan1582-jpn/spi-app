@@ -41,7 +41,7 @@ function choicesHtml(it,picked,sel,act,sub,dk){var h='<div class="choices">';
 function toggleSel(sel,i){var k=sel.indexOf(i);if(k>=0)sel.splice(k,1);else sel.push(i);}
 /* ===== 本番形式（2タブの組問）：実践②のあとの段階。組があるときだけ出す ===== */
 var SETST={key:'set',name:'本番形式',win:3,need:2,set:true};
-function stl(f,l){if(l===0)return GSTAGES;return (window.SETCORE&&SETCORE.list(f,l).length)?STAGES.concat([SETST]):STAGES;}
+function stl(f,l){if(l===0)return GSTAGES.filter(function(g){return g.lesson||(BANK[f]&&BANK[f][0]&&BANK[f][0][g.key]);});return (window.SETCORE&&SETCORE.list(f,l).length)?STAGES.concat([SETST]):STAGES;}
 function CS(){return stl(S.field,S.level)[S.stage];}
 function targetOf(it,l){return it.sec||TARGET_SEC[l]||90;}
 function strictTimer(){if(S.level===0)return CS().key==='real';return (CS().key===TIMER.stage||CS().set)&&S.level>=TIMER.fromLevel;}
