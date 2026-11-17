@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>組問の試作</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="../style.css">
+<style>
+.tabs{display:flex;gap:0;margin:0 0 12px;border-bottom:2px solid var(--line)}
+.tab{flex:0 0 auto;min-width:56px;min-height:44px;border:2px solid var(--line);border-bottom:0;border-radius:0;background:var(--card);font-size:17px;font-weight:800;cursor:pointer;margin-right:-2px;position:relative}
+.tab.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.tab .d{position:absolute;top:5px;right:6px;width:8px;height:8px;background:var(--accent)}
+.stem{margin-bottom:12px}
+.sub{border-top:2px solid var(--line);padding-top:12px;margin-top:4px}
+.navs{display:flex;gap:8px;margin-top:14px}
+.navs .next{flex:1}
+.lim{font-size:13px;color:var(--sub,#666);margin:-6px 0 10px}
+.res-set{margin:16px 0 4px;font-weight:800}
+</style>
+<section id="app" class="view"><div class="inner" id="inner"></div></section>
+<script>
+var SETS=[{"bk":"189","f":"表の解釈","stem":"ある町の4つのスキー場W、X、Y、Zで調査を行い、主に利用した交通手段を1つだけ挙げてもらった。表1は、回答結果にもとづいて、スキー場ごとに利用した交通手段の割合を示したものである。また表2は、スキー場ごとの回答者数が回答者数全体に占める割合を示している。<br>【表1】利用した交通手段<div class=\"tbl-wrap\"><table class=\"tbl\"><tr><th>交通手段＼スキー場</th><th>W</th><th>X</th><th>Y</th><th>Z</th><th>合計</th></tr><tr><th>乗用車</th><td>（　）</td><td>40%</td><td>10%</td><td>20%</td><td>23%</td></tr><tr><th>バス</th><td>10%</td><td>20%</td><td>60%</td><td>40%</td><td>（　）</td></tr><tr><th>電車</th><td>（　）</td><td>10%</td><td>20%</td><td>30%</td><td>（　）</td></tr><tr><th>その他</th><td>30%</td><td>30%</td><td>10%</td><td>10%</td><td>18%</td></tr><tr><th>合計</th><td>100%</td><td>100%</td><td>100%</td><td>100%</td><td>100%</td></tr></table></div>【表2】スキー場ごとの回答者数の割合<div class=\"tbl-wrap\"><table class=\"tbl\"><tr><th></th><th>W</th><th>X</th><th>Y</th><th>Z</th><th>合計</th></tr><tr><th>回答者の割合</th><td>10%</td><td>30%</td><td>20%</td><td>40%</td><td>100%</td></tr></table></div>","shared":1,"subs":[{"l":4,"q":"スキー場Xで「電車」と答えた人は、4つのスキー場での回答者数全体の何%か（必要なときは、最後に小数第1位を四捨五入すること）。","c":["2%","3%","5%","6%"],"a":1,"calc":"0.30 × 0.10 ＝ 0.03 → 3%"},{"l":4,"q":"スキー場Zで「バス」と答えた人は、スキー場Xで「バス」と答えた人の何倍か（必要なときは、最後に小数第2位を四捨五入すること）。","c":["0.8倍","1.3倍","2.0倍","2.7倍"],"a":3,"calc":"16 ÷ 6 ＝ 2.7倍"},{"l":5,"q":"スキー場Wで「乗用車」と答えた人は、スキー場Wでの回答者数の何%か（必要なときは、最後に小数第1位を四捨五入すること）。","c":["1%","4%","6%","10%"],"a":3,"calc":"X・Y・Zの乗用車 22%<br>Wの乗用車 23 − 22 ＝ 1%<br>1 ÷ 0.1 ＝ 10%"},{"l":4,"q":"スキー場Yで「その他」と答えた人は0人であった。4つのスキー場での回答者数の合計は何人か。","c":["0人","200人","400人","600人"],"a":0,"calc":"全体に対する割合 0.20 × 0.10 ＝ 0.02<br>0 ÷ 0.02 ＝ 0人"}]},{"bk":"26","f":"推論","stem":"P、Q、R、S、Tの5軒に品物を配達した。配達した順番について、次のことがわかっている。<br>Ⅰ　Qには3番目に配達した<br>Ⅱ　PにはR、Tより先に配達した<br>Ⅲ　最後に配達された家はTではない","subs":[{"l":6,"q":"次のうち、必ずしも誤りとはいえない推論をすべて選びなさい。","c":["Pより先にQに配達した","Tより先にQに配達した","Sには3番目に配達した"],"a":[1],"calc":"並びを全部書き出し、各推論が成り立つ並びが1つでもあるかを見る<br>A　どの並びでも成り立たない<br>B　成り立つ並びがある<br>C　どの並びでも成り立たない"},{"l":6,"q":"最も少ない情報で、配達した順番すべてを確定するためには、次のうちどの情報が加わればよいか。必要な情報をすべて選びなさい。","c":["Rには5番目に配達した","Tには4番目に配達した","Sには2番目に配達した"],"a":[2],"calc":"あり得る並び5通りを書き出し、情報を1つ、2つと加えて1通りに決まる最も少ない組を探す<br>Cで1通り"}]},{"bk":"154","f":"単位あたりの大きさ","stem":"1個120円の植木ポットがある。11個目からは1個について1割引に、31個目からは1個について3割引になる。","subs":[{"l":4,"q":"35個買ったときの代金は、全部でいくらか。","c":["2940円","3360円","3780円","4200円"],"a":2,"calc":"10個まで 120×10＝1200<br>11〜30個目 108×20＝2160<br>31〜35個目 84×5＝420<br>合計 3780円"},{"l":5,"q":"平均購入価格が1個あたり113円になった。このとき、植木ポットを合計で何個買ったか。","c":["20個","24個","30個","35個"],"a":1,"calc":"11個目からは108円。10個までの1200円と、それ以降の108円×(n−10)個の平均が113円<br>1200＋108(n−10)＝113n → n＝24"}]},{"bk":"52","f":"推論","stem":"A、B、C、Dの4人がゲームをしたところ、各自の得点は−3、−2、−1、0、1、2、3のいずれかになった。これについて、次のことがわかっている。<br>Ⅰ　同じ得点の人はいない<br>Ⅱ　AはBより3点高い<br>Ⅲ　CとDの得点をたすと−2点になる<br>","subs":[{"l":6,"q":"−1点の人がいるとき、Dが取り得る得点はどれか。当てはまるものをすべて選びなさい。","c":["−3","−2","−1","0","1","2","3"],"a":[0,1,3,4],"calc":"4人の得点を書き出すと4通り。Dは −3、−2、0、1点"},{"l":6,"q":"CがBより1点高いとき、Dが取り得る得点はどれか。当てはまるものをすべて選びなさい。","c":["−3","−2","−1","0","1","2","3"],"a":[0,1],"calc":"Bを−3から順に入れて、全員が−3〜3で重ならない場合は2通り。Dは −3、−2点"}]},{"bk":"166","f":"単位あたりの大きさ","stem":"1周0.9kmの池の周りをPは時速3.6km、Qは時速2.4kmで歩く。今、PとQは池の周りの同じ地点にいて、2人の速度はそれぞれ常に一定とする。","subs":[{"l":4,"q":"池の周りを同時に反対方向に歩き出すと、2人が再び出会うまでにかかる時間は何分か。","c":["9分","11分","15分","23分","45分","AからEのいずれでもない"],"a":0,"calc":"速さの合計 3.6 ＋ 2.4 ＝ 6km/時<br>時間 0.9 ÷ 6 ＝ 0.15時間 ＝ 9分"},{"l":5,"q":"Pが出発してから10分後に、QがPと同じ方向に歩き出すと、Pが最初にQに追いつくのは、Pが歩き出してから何分後か。","c":["15分後","21分後","25分後","35分後","45分後","AからEのいずれでもない"],"a":2,"calc":"先に歩いた距離 3.6 × 10/60 ＝ 0.6km<br>つめる距離 0.9 − 0.6 ＝ 0.3km<br>速さの差 1.2km/時 → 時間 15分<br>10 ＋ 15 ＝ 25分後"}]}];
+var LT='ABCDEFGHIJKLMNOPQRSTUVWXYZ',TOTAL=23*60*1000,G=null,tk=null;
+function multi(u){return Array.isArray(u.a);}
+function limOf(s){if(s.subs.length>=4)return 360;return s.f==='推論'?300:240;}
+function bar(n){return '<div class="bar"><span class="mini-logo" aria-hidden="true">SPI</span><span class="bar-name">'+n+'</span></div>';}
+function el(){return document.getElementById('inner');}
+function home(){G=null;stop();
+  el().innerHTML=bar('組問の試作')+'<section class="lesson"><h2>中身</h2><div class="lp">'+SETS.map(function(s,i){return (i+1)+'組目　'+s.f+'（'+s.subs.length+'問）';}).join('<br>')+'</div></section>'+
+  '<section class="lesson"><h2>操作</h2><div class="lp">上の番号タブで小問を切り替える。<br>「次へ」で次の小問、最後の小問の「次へ」で次の組へ進む。<br>タイマーは組ごとに1本（全小問で共通）。0になると、その組は答えたところまでで次へ進む。</div></section>'+
+  '<button class="next" style="width:100%" onclick="start()">開始</button>';}
+function start(){G={si:0,t0:Date.now(),ans:SETS.map(function(s){return s.subs.map(function(){return null;});})};openSet();}
+function openSet(){G.ti=0;G.q0=Date.now();draw();run();}
+function stop(){if(tk){clearInterval(tk);tk=null;}}
+function run(){stop();tk=setInterval(function(){var s=SETS[G.si],now=Date.now(),left=1-(now-G.q0)/(limOf(s)*1000),b=document.getElementById('mbar'),g=document.getElementById('mall');
+  if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
+  if(g)g.style.width=Math.max(0,100-(now-G.t0)/TOTAL*100)+'%';
+  if(left<=0)nextSet();if(now-G.t0>=TOTAL)finish();},200);}
+function draw(){var s=SETS[G.si],u=s.subs[G.ti],a=G.ans[G.si][G.ti],h=bar((G.si+1)+'問目');
+  h+='<div class="timer mock-all"><i id="mall"></i></div><div class="timer"><i id="mbar"></i></div><div class="lim">この組の制限時間 '+limOf(s)+'秒（小問共通）</div>';
+  h+='<div class="tabs" role="tablist">'+s.subs.map(function(x,i){var d=G.ans[G.si][i];var done=d!=null&&(!Array.isArray(d)||d.length);return '<button class="tab'+(i===G.ti?' on':'')+'" role="tab" aria-selected="'+(i===G.ti)+'" onclick="tab('+i+')">'+(i+1)+(done?'<i class="d"></i>':'')+'</button>';}).join('')+'</div>';
+  h+='<div class="q stem">'+s.stem+'</div><div class="q sub">'+u.q+'</div><div class="choices">';
+  u.c.forEach(function(c,i){var on=multi(u)?(a||[]).indexOf(i)>=0:a===i;h+='<button class="choice'+(on?' sel':'')+'" onclick="pick('+i+')"><span class="lt">'+LT[i]+'</span>'+c+'</button>';});
+  h+='</div><div class="navs">'+(G.ti>0?'<button class="next ghost" onclick="tab('+(G.ti-1)+')">前へ</button>':'')+'<button class="next" onclick="go()">次へ</button></div>';
+  el().innerHTML=h;}
+function tab(i){G.ti=i;draw();}
+function pick(i){var u=SETS[G.si].subs[G.ti],r=G.ans[G.si];
+  if(multi(u)){var x=(r[G.ti]||[]).slice(),k=x.indexOf(i);if(k>=0)x.splice(k,1);else x.push(i);r[G.ti]=x;}else r[G.ti]=i;draw();}
+function go(){var s=SETS[G.si];if(G.ti<s.subs.length-1){G.ti++;draw();}else nextSet();}
+function nextSet(){G.si++;if(G.si>=SETS.length)finish();else openSet();}
+function ok(u,p){if(multi(u)){if(!p)return false;var x=p.slice().sort(),y=u.a.slice().sort();return x.join()===y.join();}return p===u.a;}
+function txt(u,p){if(p==null||(Array.isArray(p)&&!p.length))return '未回答';var ps=Array.isArray(p)?p.slice().sort():[p];return ps.map(function(i){return LT[i]+' '+u.c[i];}).join('、');}
+function finish(){stop();if(!G)return;var h=bar('結果'),n=0,m=0;
+  SETS.forEach(function(s,si){h+='<div class="res-set">'+(si+1)+'組目　'+s.f+'</div>';
+    s.subs.forEach(function(u,i){var p=G.ans[si][i],o=ok(u,p);n++;if(o)m++;
+      h+='<div class="result"><div class="verdict'+(o?' ok':'')+'">'+(i+1)+'　'+(o?'正解':'不正解')+'</div><div class="calc"><b>選んだ答え</b>　'+txt(u,p)+'</div><div class="calc"><b>答え</b>　'+txt(u,u.a)+'</div><div class="calc">'+u.calc+'</div></div>';});});
+  el().innerHTML=bar('結果')+'<div class="mock-est"><div class="mock-est-l">正解</div><div class="mock-est-n">'+m+' / '+n+'</div></div>'+h.replace(bar('結果'),'')+'<button class="next" style="width:100%;margin-top:16px" onclick="home()">もどる</button>';G=null;}
+home();
+</script>
