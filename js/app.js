@@ -59,9 +59,9 @@ function recStage(f,l){var g=stl(f,l);for(var k=0;k<g.length;k++)if(!cleared(f,l
 /* ===== 画面 ===== */
 var titleV=document.getElementById('title'), appV=document.getElementById('app'), inner=document.getElementById('inner');
 var S={view:'menu'};
-var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'aihome',reset:'menu',howto:'menu',ailesson:'aihome',aicheck:'aihome',aihome:'menu',aiplace:'aihome',aiintro:'aihome',aiexam:'aihome',mock:'menu',mockq:'mock',mockres:'mock'};
+var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'aihome',reset:'menu',howto:'menu',ailesson:'aihome',aicheck:'aihome',aihome:'menu',aiplace:'aihome',aiintro:'aihome',aiexam:'aihome',mock:'menu',mockq:'mock',mockres:'mock',aiset:'aihome',mockset:'mock'};
 /* AIモード（js/ai.js）が使う共通の部品 */
-var SPI=window.SPI={barAttr:barAttr,barReset:barReset,views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
+var SPI=window.SPI={stopTimer:function(){stopTimer();},setState:function(){return Z;},setUse:function(z,c){Z=z;setReset(c);},setStart:function(){setStart();},barAttr:barAttr,barReset:barReset,views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
   inner:function(){return inner;},logAnswer:function(r){logAnswer(r);},classify:classify,targetOf:targetOf,qid:qid,
   shuffle:function(x){return shuffle(x);},cleared:function(f,l,k){return cleared(f,l,k);},
   markCleared:function(f,l,k){P[f+'|'+l+'|'+k]=1;save();},
@@ -131,7 +131,7 @@ function render(){
     h=bar(S.field+'・指標'+S.level);
     stl(S.field,S.level).forEach(function(s,i){var open=stageOpen(S.field,S.level,i),done=cleared(S.field,S.level,s.key);
       h+='<button class="item compact'+(i===recStage(S.field,S.level)?' rec':'')+'" data-act="stage" data-i="'+i+'"'+(open?'':' disabled')+'>'+(i===recStage(S.field,S.level)?ICON.rec:'')+'<span class="num">'+(i+1)+'</span><span class="name">'+s.name+'</span>'+(done?ICON.check:'')+ICON.chev+'</button>';});
-  } else if(S.view==='quiz'&&CS().set){h=setHtml();
+  } else if(S.view==='quiz'&&CS().set||S.view==='aiset'||S.view==='mockset'){h=setHtml();
   } else if(S.view==='quiz'){
     var it=S.pool[S.idx];
     h=bar(CS().name)+(S.picked==null&&strictTimer()?'<div class="timer" role="img" aria-label="制限時間"><i id="tbar"'+barAttr(S.t0,targetOf(it,S.level)*1000)+'></i></div>':'')+'<div class="q">'+it.q+'</div>'+choicesHtml(it,S.picked,S.sel,'pick','submit',true);
@@ -152,13 +152,13 @@ function render(){
   }
   else if(SPI.views[S.view]){h=SPI.views[S.view]();}
   inner.innerHTML=h;
-  if(S.view==='quiz'&&CS().set&&!S.graded)fitSet();
+  if((S.view==='quiz'&&CS().set||S.view==='aiset'||S.view==='mockset')&&!Z.graded)fitSet();
 }
 function lessonHtml(f,l){var h='';((typeof ESSENCE!=='undefined'&&ESSENCE[f])||[]).concat(LESSON[f]&&LESSON[f][l]||[]).forEach(function(sec){
   h+='<section class="lesson"><h2>'+sec.h+'</h2>'+(sec.q?'<div class="q ex">'+sec.q+'</div>':'')+(sec.p?'<div class="lp">'+sec.p+'</div>':'')+(sec.fig?figHtml(sec.fig):'')+(sec.p2?'<div class="lp">'+sec.p2+'</div>':'')+'</section>';});return h;}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function instPool(p){return p.map(inst).filter(function(x){return x;});}
-function startStage(i){if(stl(S.field,S.level)[i].set){S.stage=i;S.hist=[];S.slist=setOrder();S.sk=0;newSet();S.view='quiz';return;}
+function startStage(i){if(stl(S.field,S.level)[i].set){S.stage=i;S.level=S.level;S.hist=[];S.slist=setOrder();S.sk=0;newSet();S.view='quiz';return;}
   S.stage=i;S.hist=[];S.base=BANK[S.field][S.level][STAGES[i].key];S.pool=instPool(shuffle(S.base));S.idx=0;S.picked=null;S.view='quiz';}
 var tick=null;
 /* タイマーのバーは描き直すたびに残り時間の幅で作る（選択で描き直したときに一瞬満タンに戻らないように） */
@@ -166,47 +166,58 @@ var tick=null;
 function barReset(id){var b=document.getElementById(id);if(!b)return;b.style.transition='none';b.style.width='100%';b.className='';void b.offsetWidth;b.style.transition='';}
 function barAttr(t0,lim){var left=Math.max(0,1-(Date.now()-t0)/lim);return ' class="'+(left>0.5?'':left>0.2?'warn':'end')+'" style="width:'+(left*100)+'%"';}
 function stopTimer(){if(tick){clearInterval(tick);tick=null;}}
-function startQuestion(){stopTimer();S.t0=Date.now();S.timeout=false;S.sel=[];
+function startQuestion(){if(CS().set){setStart();return;}stopTimer();S.t0=Date.now();S.timeout=false;S.sel=[];
   if(!strictTimer())return;barReset('tbar');var lim=curLim();
   tick=setInterval(function(){var b=document.getElementById('tbar');var left=1-(Date.now()-S.t0)/lim;
     if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
-    if(left<=0){stopTimer();if(CS().set)gradeSet(true);else answer(-1,true);}},200);}
+    if(left<=0){stopTimer();answer(-1,true);}},200);}
 function answer(i,to){stopTimer();var it=S.pool[S.idx],ok=!to&&isRight(it,i),sec=Math.round((Date.now()-S.t0)/1000),tg=targetOf(it,S.level);
   S.picked=i;S.timeout=!!to;S.lastSec=sec;S.lastR=classify(ok,sec,tg,to);S.hist=(S.hist||[]).concat([ok]).slice(-CS().win);
   logAnswer({t:Date.now(),f:S.field,l:S.level,s:CS().key,q:qid(it),r:S.lastR,sec:sec,tg:tg,pick:i});
   render();var r=inner.querySelector('.result');if(r)r.scrollIntoView({block:'nearest',behavior:'smooth'});}
-function curLim(){if(CS().set)return S.cs.subs.reduce(function(t,u){return t+targetOf(u,S.level);},0)*1000;return targetOf(S.pool[S.idx],S.level)*1000;}
-function go(v){if(v!=='quiz')stopTimer();S.view=v;render();appV.scrollTop=0;if(v==='quiz'&&S.picked==null&&!(CS().set&&S.graded))startQuestion();}
+function setLim(){if(Z.lim)return Z.lim;return Z.cs?Z.cs.subs.reduce(function(t,u){return t+targetOf(u,Z.level);},0)*1000:90000;}
+function curLim(){if(CS().set)return setLim();return targetOf(S.pool[S.idx],S.level)*1000;}
+function go(v){if(v!=='quiz'&&v!=='aiset'&&v!=='mockset')stopTimer();S.view=v;render();appV.scrollTop=0;if(v==='quiz'&&S.picked==null&&!(CS().set&&Z.graded))startQuestion();}
 /* ===== 本番形式の画面：共通の文章・タブ・問い。全部のタブを解いて最後の「次へ」でまとめて正誤を出す ===== */
 /* 問題集の本物の組を先に、作った組をそのあとに出す */
 function setOrder(){var xs=SETCORE.list(S.field,S.level);return shuffle(xs.filter(function(t){return t.book;})).concat(shuffle(xs.filter(function(t){return !t.book;})));}
+/* 組問の画面の状態 Z：分野別では S、AIモードでは ai.js の状態。head（見出し）・strict（タイマー）・level・onGraded・onNext を持つ */
+var Z={};
+function setStart(){stopTimer();Z.t0=Date.now();Z.timeout=false;if(!Z.strict())return;barReset('tbar');var lim=setLim();
+  tick=setInterval(function(){var b=document.getElementById('tbar');var left=1-(Date.now()-Z.t0)/lim;
+    if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
+    if(left<=0){stopTimer();gradeSet(true);}},200);}
+function setReset(c){Z.t0=Date.now();Z.cs=c;Z.ti=0;Z.sa=c?c.subs.map(function(u){return isMulti(u)?[]:null;}):[];Z.graded=false;Z.fs=15;Z.fitting=true;}
 function newSet(){var t=null,n=0;while(!t&&n<S.slist.length*2){if(S.sk>=S.slist.length){S.slist=setOrder();S.sk=0;}t=SETCORE.make(S.field,S.slist[S.sk++]);n++;}
-  S.cs=t;S.ti=0;S.sa=t?t.subs.map(function(u){return isMulti(u)?[]:null;}):[];S.graded=false;S.picked=null;S.fs=15;S.fitting=true;}
-function setTabsHtml(){return '<div class="tabs" role="tablist">'+S.cs.subs.map(function(u,i){var d=S.sa[i],done=d!=null&&(!Array.isArray(d)||d.length);
-  return '<button class="tab'+(i===S.ti?' on':'')+'" role="tab" aria-selected="'+(i===S.ti)+'" data-act="stab" data-i="'+i+'">'+(i+1)+(done?'<i class="d"></i>':'')+'</button>';}).join('')+'</div>';}
-function setHtml(){var c=S.cs,h;
-  if(!c)return bar(CS().name)+'<div class="q">問題を作れませんでした。</div>';
-  if(!S.graded){var u=c.subs[S.ti],a=S.sa[S.ti];
-    h='<div class="kq" id="kq">'+bar(CS().name)+(strictTimer()?'<div class="timer" role="img" aria-label="制限時間"><i id="tbar"'+barAttr(S.t0,curLim())+'></i></div>':'');
+  Z=S;S.head=function(){return bar(CS().name);};S.strict=function(){return S.level>=TIMER.fromLevel;};
+  S.onGraded=function(all){S.hist=(S.hist||[]).concat([all]).slice(-SETST.win);S.picked=0;};
+  S.onNext=function(){if(stagePassed(S.hist,SETST)){P[S.field+'|'+S.level+'|set']=1;save();go('clear');return;}newSet();go('quiz');};
+  setReset(t);S.picked=null;}
+function setTabsHtml(){return '<div class="tabs" role="tablist">'+Z.cs.subs.map(function(u,i){var d=Z.sa[i],done=d!=null&&(!Array.isArray(d)||d.length);
+  return '<button class="tab'+(i===Z.ti?' on':'')+'" role="tab" aria-selected="'+(i===Z.ti)+'" data-act="stab" data-i="'+i+'">'+(i+1)+(done?'<i class="d"></i>':'')+'</button>';}).join('')+'</div>';}
+function setHtml(){var c=Z.cs,h;
+  if(!c)return Z.head()+'<div class="q">問題を作れませんでした。</div>';
+  if(!Z.graded){var u=c.subs[Z.ti],a=Z.sa[Z.ti];
+    h='<div class="kq" id="kq">'+Z.head()+(Z.strict()?'<div class="timer" role="img" aria-label="制限時間"><i id="tbar"'+barAttr(Z.t0||Date.now(),setLim())+'></i></div>':'');
     h+='<div class="q stem">'+c.stem+'</div>'+setTabsHtml()+'<div class="q sub">'+u.q+'</div><div class="choices">';
     u.c.forEach(function(x,i){var on=isMulti(u)?(a||[]).indexOf(i)>=0:a===i;h+='<button class="choice'+(on?' sel':'')+'" data-act="spick" data-i="'+i+'">'+'<span class="lt">'+LT[i]+'</span>'+x+'</button>';});
-    h+='<button class="choice dk'+(a==='dk'?' sel':'')+'" data-act="spick" data-i="dk"><span class="lt"></span>わからない</button></div>';
-    h+='<div class="navs">'+(S.ti>0?'<button class="next ghost" data-act="stab" data-i="'+(S.ti-1)+'">前へ</button>':'')+'<button class="next" data-act="snext">次へ</button></div></div>';
+    h+=(Z.nodk?'':'<button class="choice dk'+(a==='dk'?' sel':'')+'" data-act="spick" data-i="dk"><span class="lt"></span>わからない</button>')+'</div>';
+    h+='<div class="navs">'+(Z.ti>0?'<button class="next ghost" data-act="stab" data-i="'+(Z.ti-1)+'">前へ</button>':'')+'<button class="next" data-act="snext">次へ</button></div></div>';
     return h;}
-  h=bar(CS().name)+'<div class="q">'+c.stem+'</div>';
-  c.subs.forEach(function(u,i){var p=S.sa[i],ok=isRight(u,p);
-    h+='<div class="set-res"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON.ok:ICON.ng)+(i+1)+'　'+(ok?'正解':S.timeout&&(p==null||(Array.isArray(p)&&!p.length))?'時間切れ':'不正解')+'</div><div class="q">'+u.q+'</div>'+choicesHtml(u,p==null?[]:p,null,'none','none',false)+
+  h=Z.head()+'<div class="q">'+c.stem+'</div>';
+  c.subs.forEach(function(u,i){var p=Z.sa[i],ok=isRight(u,p);
+    h+='<div class="set-res"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON.ok:ICON.ng)+(i+1)+'　'+(ok?'正解':Z.timeout&&(p==null||(Array.isArray(p)&&!p.length))?'時間切れ':'不正解')+'</div><div class="q">'+u.q+'</div>'+choicesHtml(u,p==null?[]:p,null,'none','none',false)+
       '<div class="result">'+(u.inw?'<div class="calc"><b>'+(u.inwh||'内訳')+'</b>　'+u.inw+'</div>':'')+figHtml(u.fig)+'<div class="calc">'+(u.calc||'')+'</div></div></div>';});
   return h+'<button class="next" data-act="snextset">次へ</button>';}
 /* 一画面に収まる大きさ（上限15px、下限9px）。組の中では一番小さい値にそろえる */
-function fitSet(){var k=document.getElementById('kq');if(!k)return;var fs=S.fs||15;k.style.setProperty('--fs',fs+'px');
+function fitSet(){var k=document.getElementById('kq');if(!k)return;var fs=Z.fs||15;k.style.setProperty('--fs',fs+'px');
   var over=function(){var r=k.getBoundingClientRect();return r.top+k.scrollHeight>window.innerHeight-4||k.scrollWidth>k.clientWidth+1;};
-  while(fs>9&&over()){fs-=0.25;k.style.setProperty('--fs',fs+'px');}S.fs=fs;
-  if(S.fitting){S.fitting=false;var t=S.ti;for(var i=S.cs.subs.length-1;i>=0;i--){S.ti=i;render();}S.ti=t;render();}}
-function gradeSet(to){stopTimer();var c=S.cs,sec=Math.round((Date.now()-S.t0)/1000),all=true;S.timeout=!!to;
-  c.subs.forEach(function(u,i){var p=S.sa[i],ok=isRight(u,p);if(!ok)all=false;
-    logAnswer({t:Date.now(),f:S.field,l:S.level,s:'set',q:c.id+'-'+(i+1),r:classify(ok,sec,curLim()/1000,to&&!ok),sec:sec,tg:Math.round(curLim()/1000),pick:p});});
-  S.hist=(S.hist||[]).concat([all]).slice(-SETST.win);S.graded=true;S.picked=0;render();appV.scrollTop=0;}
+  while(fs>9&&over()){fs-=0.25;k.style.setProperty('--fs',fs+'px');}Z.fs=fs;
+  if(Z.fitting){Z.fitting=false;var t=Z.ti;for(var i=Z.cs.subs.length-1;i>=0;i--){Z.ti=i;render();}Z.ti=t;render();}}
+function gradeSet(to){stopTimer();var c=Z.cs,sec=Math.round((Date.now()-S.t0)/1000),all=true;Z.timeout=!!to;
+  c.subs.forEach(function(u,i){var p=Z.sa[i],ok=isRight(u,p);if(!ok)all=false;
+    logAnswer({t:Date.now(),f:c.f,l:Z.level,s:'set',q:c.id+'-'+(i+1),r:classify(ok,sec,setLim()/1000,to&&!ok),sec:sec,tg:Math.round(setLim()/1000),pick:p});});
+  Z.graded=true;if(Z.silent){Z.onGraded(all,sec,to);return;}Z.onGraded(all,sec,to);render();appV.scrollTop=0;}
 
 inner.addEventListener('click',function(e){
   var b=e.target.closest('button');if(!b||b.disabled)return;var a=b.dataset.act;
@@ -226,10 +237,10 @@ inner.addEventListener('click',function(e){
     if(S.idx>=S.pool.length){var last=S.pool[S.pool.length-1].src||S.pool[S.pool.length-1],nb=shuffle(S.base);if(nb.length>1&&nb[0]===last)nb.push(nb.shift());S.pool=instPool(nb);S.idx=0;}
     go('quiz');
   }
-  else if(a==='spick'){var u=S.cs.subs[S.ti],v=b.dataset.i;if(v==='dk')S.sa[S.ti]=S.sa[S.ti]==='dk'?(isMulti(u)?[]:null):'dk';else{v=+v;if(isMulti(u)){var x=Array.isArray(S.sa[S.ti])?S.sa[S.ti].slice():[];toggleSel(x,v);S.sa[S.ti]=x;}else S.sa[S.ti]=v;}render();}
-  else if(a==='stab'){S.ti=+b.dataset.i;render();}
-  else if(a==='snext'){if(S.ti<S.cs.subs.length-1){S.ti++;render();}else gradeSet(false);}
-  else if(a==='snextset'){if(stagePassed(S.hist,SETST)){P[S.field+'|'+S.level+'|set']=1;save();go('clear');return;}newSet();go('quiz');}
+  else if(a==='spick'){var u=Z.cs.subs[Z.ti],v=b.dataset.i;if(v==='dk')Z.sa[Z.ti]=Z.sa[Z.ti]==='dk'?(isMulti(u)?[]:null):'dk';else{v=+v;if(isMulti(u)){var x=Array.isArray(Z.sa[Z.ti])?Z.sa[Z.ti].slice():[];toggleSel(x,v);Z.sa[Z.ti]=x;}else Z.sa[Z.ti]=v;}render();}
+  else if(a==='stab'){Z.ti=+b.dataset.i;render();}
+  else if(a==='snext'){if(Z.ti<Z.cs.subs.length-1){Z.ti++;render();}else gradeSet(false);}
+  else if(a==='snextset'){Z.onNext();}
   else if(a==='nextstage'){startStage(S.stage+1);go('quiz');}
   else if(a==='tostages'){go('stages');}
   else if(a==='reset'){go('reset');}

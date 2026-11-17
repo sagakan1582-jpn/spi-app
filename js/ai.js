@@ -27,7 +27,10 @@ function pickQ(f,l,key){var p=pool(f,l,key);if(!p.length)return null;var last=Q.
 function count(t){return A.hist.slice(-10).filter(function(x){return x===t;}).length;}
 
 /* ===== 次の1問 ===== */
-function make(type,f,l,stIdx,timer){var key=STAGES[stIdx].key,it=pickQ(f,l,key);if(!it)return null;
+/* 本番形式（2タブの組問）：実践②のあとの段階（stIdx＝STAGES.length）。組がある分野だけ。直近3組中2組正解で習得 */
+var SETI=STAGES.length,SETG={win:3,need:2};
+function hasSet(f,l){return !!(window.SETCORE&&SETCORE.list(f,l).length);}
+function make(type,f,l,stIdx,timer){if(stIdx>=SETI)return {type:type,f:f,l:l,stIdx:SETI,set:true};var key=STAGES[stIdx].key,it=pickQ(f,l,key);if(!it)return null;
   return {type:type,f:f,l:l,stIdx:stIdx,key:key,it:it,timer:timer};}
 function timerFor(s){return s.m>=2?'strict':s.m===1?'soft':'none';}
 /* ===== 実力診断（最初の1回）：計算の各分野で 指標4 → 時間内に正解なら5、だめなら3 ===== */
@@ -105,7 +108,7 @@ function update(item,r){if(item.type==='place'){placeUpdate(item,r);save();retur
         Q.msg='「'+STAGES[item.stIdx].name+'」合格！'+(item.stIdx<last?'次は「'+STAGES[item.stIdx+1].name+'」。'+STAGES[item.stIdx+1].win+'問中'+STAGES[item.stIdx+1].need+'問正解で合格。':'');
         if(item.stIdx===1)s.m=Math.max(s.m,1);
         /* 実践②に合格したら習得（速さを上げる段階はなし。2026-11-17 ユーザー指示） */
-        if(item.stIdx<last)s.st++;else if(s.m<3){s.m=3;s.iv=0;s.due=now+DAY;s.weak=0;Q.msg='「'+item.f+'」指標'+item.l+'を習得！';}}}
+        if(item.stIdx<last)s.st++;else if(s.m<3&&hasSet(item.f,item.l)){s.st=SETI;s.sh=[];Q.msg='「'+STAGES[last].name+'」合格！次は「本番形式」。2問1組で、3組中2組正解で合格。';}else if(s.m<3){s.m=3;s.iv=0;s.due=now+DAY;s.weak=0;Q.msg='「'+item.f+'」指標'+item.l+'を習得！';}}}
     if(r==='slow'&&s.m>=1)s.weak=1;
     if(r==='fast'&&item.type==='weak'&&s.m<2)s.weak=0;
   }else{s.wr++;s.weak=1;
@@ -212,11 +215,25 @@ function show(){Q.picked=null;Q.sel=[];Q.timeout=false;Q.diagShow=false;Q.showMs
   Q.item=next();
   /* 新しい分野に入るときは、何を学ぶかを先に説明する */
   /* 段階が変わるたびに区切り画面（B案）を出す。分野に入るとき・合格して次の段階へ進むとき・戻るとき */
-  if(Q.item&&(Q.item.type==='lesson'||Q.item.type==='new'||Q.item.type==='weak'&&A.focus===Q.item.f+'|'+Q.item.l)){var ck=Q.item.f+'|'+Q.item.l+'|'+(Q.item.type==='lesson'?0:Q.item.stIdx);
+  if(Q.item&&!Q.item.set&&(Q.item.type==='lesson'||Q.item.type==='new'||Q.item.type==='weak'&&A.focus===Q.item.f+'|'+Q.item.l)){var ck=Q.item.f+'|'+Q.item.l+'|'+(Q.item.type==='lesson'?0:Q.item.stIdx);
     if(A.cp!==ck){A.cp=ck;A.focus=Q.item.f+'|'+Q.item.l;save();if(Q.showMsg&&Q.showMsg.indexOf('合格！')>=0)Q.showMsg=null;Q.pending=Q.item;X.go('aiintro');return;}}
   if(Q.item&&Q.item.type==='lesson'){X.go('ailesson');return;}
   present();}
-function present(){if(Q.item){Q.lastQ=Q.item.it.src||Q.item.it;A.cur=Q.item;save();}X.go('ai');startTimer();}
+function presentSet(){var item=Q.item,ts=SETCORE.list(item.f,item.l),bk=ts.filter(function(t){return t.book;}),c=null;
+  for(var n=0;n<10&&!c;n++){var pool=bk.length&&Math.random()<0.5?bk:ts;c=SETCORE.make(item.f,pool[Math.floor(Math.random()*pool.length)]);}
+  if(!c){var s0=st(item.f,item.l);s0.st=SETI-1;A.cur=null;save();show();return;}
+  A.cur=item;save();
+  X.setUse({level:item.l,head:function(){var s=st(item.f,item.l);return '<div class="bar"><button class="back" data-act="back" aria-label="もどる">'+X.icon('back')+'</button><span class="cp-num">'+(SETI+1)+'</span><span class="cp-name"><span>'+item.f+'</span><b>本番形式</b></span></div>'+
+      '<div class="cp-streak"><b>正解</b>'+boxes((s.sh||[]).slice(-SETG.win),SETG)+'</div>';},
+    strict:function(){return item.l>=TIMER.fromLevel;},
+    onGraded:function(all){var s=st(item.f,item.l);A.cur=null;A.hist.push(item.type);if(A.hist.length>30)A.hist=A.hist.slice(-30);
+      s.sh=(s.sh||[]).concat([all]).slice(-SETG.win);
+      if(stagePassed(s.sh,SETG)&&s.m<3){s.m=3;s.iv=0;s.due=Date.now()+DAY;s.weak=0;X.markCleared(item.f,item.l,'set');Q.msg='「'+item.f+'」指標'+item.l+'を習得！';}
+      else if(!all)s.weak=1;
+      save();},
+    onNext:function(){show();}},c);
+  X.go('aiset');X.setStart();}
+function present(){if(Q.item&&Q.item.set){presentSet();return;}if(Q.item){Q.lastQ=Q.item.it.src||Q.item.it;A.cur=Q.item;save();}X.go('ai');startTimer();}
 function answer(i,to){stopTimer();var item=Q.item,it=item.it,ok=!to&&X.isRight(it,i),sec=Math.round((Date.now()-Q.t0)/1000),tg=X.targetOf(it,item.l);
   Q.picked=i;Q.timeout=!!to;Q.sec=sec;Q.r=X.classify(ok,sec,tg,to);
   /* 本番タイマーでないときは「遅い」で弱点にしすぎないよう、目安を超えたら slow とだけ記録する */

@@ -59,8 +59,23 @@ function nextQ(){if(T.i>=60||Date.now()-T.t0>=TOTAL){finish();return;}
   else if(T.cd<=0&&T.cb<cbCap(T.th)){k='m';w=true;l=T.th>=P.g7&&fields(7).length?7:6;T.cd=P.cd;}
   else{k='e';w=false;l=T.th>=P.g7&&fields(7).length?7:6;T.cd--;}
   T.cur=pickItem(l,w,only);if(!T.cur){finish();return;}
+  /* 本番形式：計算はその分野に組問（2タブ）があれば組で出す（本番は表の初回以外すべて2タブ） */
+  if(k==='c'&&window.SETCORE&&SETCORE.list(T.cur.f,l).length){var cs=null,ts=SETCORE.list(T.cur.f,l);for(var n=0;n<6&&!cs;n++)cs=SETCORE.make(T.cur.f,ts[Math.floor(Math.random()*ts.length)]);
+    if(cs){startSet(T.cur.f,l,cs);return;}}
   T.cur.k=X.isMulti(T.cur.it)?'m':(k==='m'?'e':k);if(T.cur.k==='m')T.cb++;if(T.cur.k!=='c')T.inf++;
   T.qt0=Date.now();T.sel=[];X.go('mockq');run();}
+function startSet(f,l,cs){T.cur={f:f,l:l,k:'c',set:cs};T.qt0=Date.now();
+  var lim=cs.subs.reduce(function(t,u){return t+limOf({k:'c',l:u.l||l,f:f});},0)*1000;
+  X.setUse({level:l,lim:lim,silent:true,nodk:true,strict:function(){return true;},
+    head:function(){return X.bar((T.i+1)+'問目')+'<div class="timer mock-all" role="img" aria-label="全体の残り時間"><i id="mall" style="width:'+Math.max(0,100-(Date.now()-T.t0)/TOTAL*100)+'%"></i></div>';},
+    onGraded:function(all,sec,to){var z=X.setState();
+      if(to&&Date.now()-T.t0>=TOTAL){finish();return;}
+      cs.subs.forEach(function(u,i){var p=z.sa[i],ok=X.isRight(u,p),r=X.classify(ok,Math.round(sec/cs.subs.length),X.targetOf(u,u.l||l),to&&!ok),it={};for(var k2 in u)it[k2]=u[k2];it.q=cs.stem+'<br>'+u.q;
+        T.ans.push({f:f,l:u.l||l,k:'c',it:it,pick:p,r:r,sec:Math.round(sec/cs.subs.length)});});
+      T.th=estTheta();T.i+=cs.subs.length;nextQ();}},cs);
+  X.go('mockset');X.setStart();stop();
+  tick=setInterval(function(){var v=X.state().view;if(v!=='mockset'){stop();return;}var g=document.getElementById('mall');if(g)g.style.width=Math.max(0,100-(Date.now()-T.t0)/TOTAL*100)+'%';
+    if(Date.now()-T.t0>=TOTAL){X.stopTimer();finish();}},200);}
 function stop(){if(tick){clearInterval(tick);tick=null;}}
 function run(){stop();var lim=limOf(T.cur)*1000;
   tick=setInterval(function(){if(X.state().view!=='mockq'){stop();return;}
@@ -82,7 +97,7 @@ function stats(){var n=T.ans.length,inf=T.ans.filter(function(x){return x.k!=='c
   return {n:n,inf:inf,r:n?inf/n:0,cb:T.ans.filter(function(x){return x.k==='m';}).length,c7:T.ans.filter(function(x){return x.k==='m'&&x.l===7;}).length};}
 /* 推定は平均に引き寄せられて低めに出るので、+sh してから切り捨てる（仮想受検者1000人で、高めと低めのずれが同数になる値） */
 function estimate(){if(!T.ans.length)return null;return clamp(Math.floor(T.th+P.sh),1,7);}
-function finish(){stop();var est=estimate(),ok=T.ans.filter(okOf).length;
+function finish(){stop();if(X.state().view==='mockset')X.stopTimer();var est=estimate(),ok=T.ans.filter(okOf).length;
   var st=stats();T.res={est:est,ok:ok,n:st.n,st:st};var rec={t:Date.now(),est:est,ok:ok,n:st.n,th:Math.round(T.th*100)/100},pb0=best(),h=hist();h.push(rec);saveHist(h);
   T.res.pb=est!=null&&better(rec,pb0);if(T.res.pb){try{localStorage.setItem(BKEY,JSON.stringify(rec));}catch(e){}}
   T.open=-1;X.go('mockres');}
