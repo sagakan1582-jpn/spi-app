@@ -158,7 +158,7 @@ function lessonHtml(f,l){var h='';((typeof ESSENCE!=='undefined'&&ESSENCE[f])||[
   h+='<section class="lesson"><h2>'+sec.h+'</h2>'+(sec.q?'<div class="q ex">'+sec.q+'</div>':'')+(sec.p?'<div class="lp">'+sec.p+'</div>':'')+(sec.fig?figHtml(sec.fig):'')+(sec.p2?'<div class="lp">'+sec.p2+'</div>':'')+'</section>';});return h;}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function instPool(p){return p.map(inst).filter(function(x){return x;});}
-function startStage(i){if(stl(S.field,S.level)[i].set){S.stage=i;S.hist=[];S.slist=shuffle(SETCORE.list(S.field,S.level));S.sk=0;newSet();S.view='quiz';return;}
+function startStage(i){if(stl(S.field,S.level)[i].set){S.stage=i;S.hist=[];S.slist=setOrder();S.sk=0;newSet();S.view='quiz';return;}
   S.stage=i;S.hist=[];S.base=BANK[S.field][S.level][STAGES[i].key];S.pool=instPool(shuffle(S.base));S.idx=0;S.picked=null;S.view='quiz';}
 var tick=null;
 /* タイマーのバーは描き直すたびに残り時間の幅で作る（選択で描き直したときに一瞬満タンに戻らないように） */
@@ -178,7 +178,9 @@ function answer(i,to){stopTimer();var it=S.pool[S.idx],ok=!to&&isRight(it,i),sec
 function curLim(){if(CS().set)return S.cs.subs.reduce(function(t,u){return t+targetOf(u,S.level);},0)*1000;return targetOf(S.pool[S.idx],S.level)*1000;}
 function go(v){if(v!=='quiz')stopTimer();S.view=v;render();appV.scrollTop=0;if(v==='quiz'&&S.picked==null&&!(CS().set&&S.graded))startQuestion();}
 /* ===== 本番形式の画面：共通の文章・タブ・問い。全部のタブを解いて最後の「次へ」でまとめて正誤を出す ===== */
-function newSet(){var t=null,n=0;while(!t&&n<S.slist.length*2){if(S.sk>=S.slist.length){S.slist=shuffle(S.slist);S.sk=0;}t=SETCORE.make(S.field,S.slist[S.sk++]);n++;}
+/* 問題集の本物の組を先に、作った組をそのあとに出す */
+function setOrder(){var xs=SETCORE.list(S.field,S.level);return shuffle(xs.filter(function(t){return t.book;})).concat(shuffle(xs.filter(function(t){return !t.book;})));}
+function newSet(){var t=null,n=0;while(!t&&n<S.slist.length*2){if(S.sk>=S.slist.length){S.slist=setOrder();S.sk=0;}t=SETCORE.make(S.field,S.slist[S.sk++]);n++;}
   S.cs=t;S.ti=0;S.sa=t?t.subs.map(function(u){return isMulti(u)?[]:null;}):[];S.graded=false;S.picked=null;S.fs=15;S.fitting=true;}
 function setTabsHtml(){return '<div class="tabs" role="tablist">'+S.cs.subs.map(function(u,i){var d=S.sa[i],done=d!=null&&(!Array.isArray(d)||d.length);
   return '<button class="tab'+(i===S.ti?' on':'')+'" role="tab" aria-selected="'+(i===S.ti)+'" data-act="stab" data-i="'+i+'">'+(i+1)+(done?'<i class="d"></i>':'')+'</button>';}).join('')+'</div>';}

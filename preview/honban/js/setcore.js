@@ -12,7 +12,19 @@ function choices(r){var a=fmt(r.ans,r),out=[a],c=r.wr.slice();
   c.forEach(function(x){if(out.length>=5)return;if(!r.str&&!(isFinite(x)&&x>0))return;var s=fmt(x,r);if(out.indexOf(s)<0)out.push(s);});
   if(out.length<4)return null;var sh=shuffle(out);return {c:sh,a:sh.indexOf(a)};}
 function findSrc(f,id){var B=BANK[f];for(var l in B)for(var k in B[l]){var xs=B[l][k]||[];for(var i=0;i<xs.length;i++)if(xs[i].id===id)return {it:xs[i],l:+l};}return null;}
-function make(f,t){var s=findSrc(f,t.src);if(!s)return null;
+/* 問題集の本物の組：各小問の定義（BOOKDEFS）に同じ数値 v を入れて作る。共通の文章は小問の問題文の共通部分 */
+function makeBook(f,t){var D=(G.BOOKDEFS||{}),ds=t.book.map(function(b){return D[b];});if(ds.some(function(d){return !d;}))return null;
+  var P={};ds.forEach(function(x){for(var k in x.d.P)if(!P[k])P[k]=x.d.P[k];});var nm=Object.keys(P);
+  for(var n=0;n<3000;n++){var v={};nm.forEach(function(k){v[k]=RND.pick(P[k]);});
+    if(ds.some(function(x){return x.d.ok&&!x.d.ok(v);}))continue;var os=[],bad=false;
+    for(var i=0;i<ds.length&&!bad;i++){var o;try{o=ds[i].d.f(v,RND);}catch(e){o=null;}if(!o||!(o.a>=0||Array.isArray(o.a))||o.c.some(function(x,j){return o.c.indexOf(x)!==j;}))bad=true;else os.push(o);}
+    if(bad)continue;var st=common(os.map(function(o){return o.q;}));if(!st)continue;
+    return {id:t.id,f:f,book:1,stem:st,subs:os.map(function(o,i){return {q:o.q.slice(st.length),c:o.c,a:o.a,calc:o.calc,fig:o.fig,inw:o.inw,inwh:o.inwh,l:ds[i].lv};})};}
+  return null;}
+/* 共通部分：先頭から同じ文字が続く範囲を、最後の「。」か「<br>」で区切る */
+function common(qs){var a=qs[0],n=a.length;qs.forEach(function(q){var i=0;while(i<n&&i<q.length&&q.charAt(i)===a.charAt(i))i++;n=i;});
+  var s=a.slice(0,n),k=Math.max(s.lastIndexOf('。')+1,s.lastIndexOf('<br>')+4,s.lastIndexOf('</div>')+6);return k>0?a.slice(0,k):null;}
+function make(f,t){if(t.book)return makeBook(f,t);var s=findSrc(f,t.src);if(!s)return null;
   for(var n=0;n<40;n++){var o1;try{o1=s.it.make?s.it.make(RND):s.it;}catch(e){continue;}if(!o1||!o1.q||!o1.v)continue;
     var sp=split(o1.q);if(!sp)return null;var r;try{r=t.two(o1.v,o1);}catch(e){r=null;}if(!r)continue;var ch=choices(r);if(!ch)continue;
     return {id:t.id,f:f,stem:sp[0],subs:[{q:sp[1],c:o1.c,a:o1.a,calc:o1.calc,fig:o1.fig,inw:o1.inw,inwh:o1.inwh,l:s.l},{q:r.q,c:ch.c,a:ch.a,calc:r.calc,l:r.l}]};}
