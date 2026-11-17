@@ -193,3 +193,23 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .cp-boxes i{width:22px;height:22px}
 .cp-boxes i.ng{background:var(--ng);border-color:var(--ng)}
 .cp-cnt{font-weight:800;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+/* ===== 本番形式（組問）：一画面に収める。--fs は js が 15px から必要なだけ小さくする ===== */
+.kq{--fs:15px;font-size:var(--fs);line-height:1.45;margin:-8px -6px 0}
+.kq .q{line-height:1.45}
+.kq .bar{margin-bottom:4px}
+.kq .timer{margin:0 0 6px}
+.kq .stem{margin:0 0 6px;padding:0;border:0;font-size:var(--fs);font-weight:500}
+.kq .tbl-wrap{overflow:visible;margin:4px 0}
+.kq .tbl{width:100%;font-size:calc(var(--fs)*.82)}
+.kq .tbl th,.kq .tbl td{padding:2px 3px;min-width:0;white-space:nowrap;line-height:1.3}
+.kq .tbl th:first-child{white-space:normal}
+.tabs{display:flex;margin:0;border-bottom:2px solid var(--ink)}
+.tab{min-width:44px;min-height:34px;border:2px solid var(--line);border-bottom:0;border-radius:0;background:var(--card);font-size:calc(var(--fs,15px)*1.05);font-weight:800;cursor:pointer;margin-right:-2px;position:relative;padding:0 10px}
+.tab.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.tab .d{position:absolute;top:4px;right:4px;width:6px;height:6px;background:var(--accent)}
+.kq .sub{margin:0;padding:.45em 0;border:0;font-size:var(--fs);font-weight:700}
+.kq .choices{gap:.35em;margin:0}
+.kq .choice{min-height:0;padding:.45em .7em;font-size:var(--fs);gap:.7em}
+.navs{display:flex;gap:6px;margin-top:.5em}
+.navs .next{flex:1;min-height:2.6em;font-size:var(--fs)}
+.set-res{margin-top:16px}
