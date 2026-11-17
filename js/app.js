@@ -16,7 +16,8 @@ function classify(ok,sec,target,to){return to?'timeout':!ok?'wrong':sec<=target?
    R は乱数の道具：R.int(min,max), R.pick(配列), R.shuffle(配列)。 */
 var RND={int:function(a,b){return a+Math.floor(Math.random()*(b-a+1));},pick:function(x){return x[Math.floor(Math.random()*x.length)];},shuffle:function(x){return shuffle(x);}};
 /* 計算誤差の表示（3.9000000000000004 など）を直す */
-function tidy(o){if(o&&Array.isArray(o.c))o.c=o.c.map(function(x){return typeof x==='string'?x.replace(/\d+\.\d{8,}/g,function(m){return String(Math.round(+m*1e6)/1e6);}):x;});return o;}
+function tidyS(x){return typeof x==='string'?x.replace(/\d+\.\d{8,}/g,function(m){return String(Math.round(+m*1e6)/1e6);}):x;}
+function tidy(o){if(!o)return o;if(Array.isArray(o.c))o.c=o.c.map(tidyS);o.q=tidyS(o.q);o.calc=tidyS(o.calc);o.inw=tidyS(o.inw);return o;}
 function inst(it){if(!it||!it.make)return it;for(var k=0;k<30;k++){try{var o=tidy(it.make(RND));if(o&&o.q){o.id=o.id||it.id;o.src=it;return o;}}catch(e){}}return null;}
 /* ===== 選択肢（単一選択と「すべて選ぶ」） ===== */
 var LT='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -189,7 +190,7 @@ function setStart(){stopTimer();Z.t0=Date.now();Z.timeout=false;if(!Z.strict())r
   tick=setInterval(function(){var b=document.getElementById('tbar');var left=1-(Date.now()-Z.t0)/lim;
     if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
     if(left<=0){stopTimer();gradeSet(true);}},200);}
-function setReset(c){Z.t0=Date.now();Z.cs=c;Z.ti=0;Z.sa=c?c.subs.map(function(u){return isMulti(u)?[]:null;}):[];Z.graded=false;Z.fs=15;Z.fitting=true;}
+function setReset(c){Z.t0=Date.now();Z.cs=c;if(c){c.stem=tidyS(c.stem);c.subs.forEach(tidy);}Z.ti=0;Z.sa=c?c.subs.map(function(u){return isMulti(u)?[]:null;}):[];Z.graded=false;Z.fs=15;Z.fitting=true;}
 function newSet(){var t=null,n=0;while(!t&&n<S.slist.length*2){if(S.sk>=S.slist.length){S.slist=setOrder();S.sk=0;}t=SETCORE.make(S.field,S.slist[S.sk++]);n++;}
   Z=S;S.head=function(){return bar(CS().name);};S.strict=function(){return S.level>=TIMER.fromLevel;};
   S.onGraded=function(all){S.hist=(S.hist||[]).concat([all]).slice(-SETST.win);S.picked=0;};
@@ -206,11 +207,11 @@ function setHtml(){var c=Z.cs,h;
     h+=(Z.nodk?'':'<button class="choice dk'+(a==='dk'?' sel':'')+'" data-act="spick" data-i="dk"><span class="lt"></span>わからない</button>')+'</div>';
     h+='<div class="navs">'+(Z.ti>0?'<button class="next ghost" data-act="stab" data-i="'+(Z.ti-1)+'">前へ</button>':'')+'<button class="next" data-act="snext">次へ</button></div></div>';
     return h;}
-  h=Z.head()+'<div class="q">'+c.stem+'</div>';
+  h=Z.head()+'<div class="kq" style="--fs:'+(Z.fs||15)+'px;margin:0"><div class="q stem">'+c.stem+'</div>';
   c.subs.forEach(function(u,i){var p=Z.sa[i],ok=isRight(u,p);
-    h+='<div class="set-res"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON.ok:ICON.ng)+(i+1)+'　'+(ok?'正解':Z.timeout&&(p==null||(Array.isArray(p)&&!p.length))?'時間切れ':'不正解')+'</div><div class="q">'+u.q+'</div>'+choicesHtml(u,p==null?[]:p,null,'none','none',false)+
+    h+='<div class="set-res"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON.ok:ICON.ng)+(i+1)+'　'+(ok?'正解':Z.timeout&&(p==null||(Array.isArray(p)&&!p.length))?'時間切れ':'不正解')+'</div><div class="q sub">'+u.q+'</div>'+choicesHtml(u,p==null?[]:p,null,'none','none',false)+
       '<div class="result">'+(u.inw?'<div class="calc"><b>'+(u.inwh||'内訳')+'</b>　'+u.inw+'</div>':'')+figHtml(u.fig)+'<div class="calc">'+(u.calc||'')+'</div></div></div>';});
-  return h+'<button class="next" data-act="snextset">次へ</button>';}
+  return h+'</div><button class="next" data-act="snextset">次へ</button>';}
 /* 一画面に収まる大きさ（上限15px、下限9px）。組の中では一番小さい値にそろえる */
 function fitSet(){var k=document.getElementById('kq');if(!k)return;var fs=Z.fs||15;k.style.setProperty('--fs',fs+'px');
   var over=function(){var r=k.getBoundingClientRect();return r.top+k.scrollHeight>window.innerHeight-4||k.scrollWidth>k.clientWidth+1;};
