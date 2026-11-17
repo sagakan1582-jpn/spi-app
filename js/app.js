@@ -81,8 +81,9 @@ function bar(name,logo){
 }
 function streakHtml(){var g=STAGES[S.stage],r=(S.hist||[]).slice(-g.win),n=stageOk(r,g),h='<span class="streak" role="img" aria-label="正解 '+n+' / '+g.need+'">';for(var i=0;i<g.win;i++)h+='<i class="'+(i<r.length?(r[i]?'on':'ng'):'')+'"></i>';return h+'<b>'+n+'/'+g.need+'</b></span>';}
 function progHtml(n){var h='<span class="prog" role="img" aria-label="'+n+' / '+STAGES.length+'">';for(var i=0;i<STAGES.length;i++)h+='<i class="'+(i<n?'on':'')+'"></i>';return h+'</span>';}
-function cellHtml(x,tag,cls){var c=cls||'';if(x&&x.charAt(0)==='!'){x=x.slice(1);c+=' ask';}else if(x==='?')c+=' ask';return '<'+tag+(c?' class="'+c.trim()+'"':'')+'>'+(x||'')+'</'+tag+'>';}
+function cellHtml(x,tag,cls){var c=cls||'';x=x==null?'':String(x);if(x&&x.charAt(0)==='!'){x=x.slice(1);c+=' ask';}else if(x==='?')c+=' ask';return '<'+tag+(c?' class="'+c.trim()+'"':'')+'>'+(x||'')+'</'+tag+'>';}
 function figHtml(f){
+  if(!f)return '';
   if(f.table){var t='<div class="tbl-wrap"><table class="tbl"><tr>';
     f.table.head.forEach(function(x){t+=cellHtml(x,'th');});t+='</tr>';
     f.table.rows.forEach(function(r){t+='<tr>';r.forEach(function(x,i){t+=cellHtml(x,i===0?'th':'td',r[0]==='計'||i===r.length-1&&f.table.head[i]==='計'?'sum':'');});t+='</tr>';});
@@ -130,7 +131,7 @@ function render(){
     var it=S.pool[S.idx];
     h=bar(STAGES[S.stage].name)+(S.picked==null&&strictTimer()?'<div class="timer" role="img" aria-label="制限時間"><i id="tbar"></i></div>':'')+'<div class="q">'+it.q+'</div>'+choicesHtml(it,S.picked,S.sel,'pick','submit',true);
     if(S.picked!=null){var ok=isRight(it,S.picked);
-      h+='<div class="result"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON.ok+'正解':ICON.ng+(S.timeout?'時間切れ':'不正解'))+'<span class="sec'+(S.lastR==='slow'?' over':'')+'">'+S.lastSec+'秒</span></div>'+'<div class="calc"><b>'+(it.inwh||(S.field==='順列・組合せ'?'整理':'内訳'))+'</b>　'+(it.inw||it.fig.parts.filter(function(x){return x.n;}).map(function(x){return x.n;}).join('・'))+'</div>'+figHtml(it.fig)+'<div class="calc">'+it.calc+'</div><div class="calc"><b>答え</b>　'+ansText(it)+'</div>'+
+      h+='<div class="result"><div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON.ok+'正解':ICON.ng+(S.timeout?'時間切れ':'不正解'))+'<span class="sec'+(S.lastR==='slow'?' over':'')+'">'+S.lastSec+'秒</span></div>'+'<div class="calc"><b>'+(it.inwh||(S.field==='順列・組合せ'?'整理':'内訳'))+'</b>　'+SPI.inwText(it)+'</div>'+figHtml(it.fig)+'<div class="calc">'+it.calc+'</div><div class="calc"><b>答え</b>　'+ansText(it)+'</div>'+
         '<button class="next" data-act="next">次へ</button></div>';}
   } else if(S.view==='about'){
     h=bar('SPIとは');
