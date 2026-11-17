@@ -23,11 +23,11 @@ html,body{height:100%}
 .tab{min-width:44px;min-height:34px;border:2px solid var(--line);border-bottom:0;border-radius:0;background:var(--card);font-size:calc(var(--fs)*1.05);font-weight:800;cursor:pointer;margin-right:-2px;position:relative;padding:0 10px}
 .tab.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
 .tab .d{position:absolute;top:4px;right:4px;width:6px;height:6px;background:var(--accent)}
-.kq .sub{margin:0;padding:6px 0;border:0;font-size:var(--fs);font-weight:700}
-.kq .choices{gap:4px;margin:0}
-.kq .choice{min-height:0;padding:5px 10px;font-size:var(--fs);gap:10px}
-.navs{display:flex;gap:6px;margin-top:6px}
-.navs .next{flex:1;min-height:40px;font-size:var(--fs)}
+.kq .sub{margin:0;padding:.45em 0;border:0;font-size:var(--fs);font-weight:700}
+.kq .choices{gap:.35em;margin:0}
+.kq .choice{min-height:0;padding:.45em .7em;font-size:var(--fs);gap:.7em}
+.navs{display:flex;gap:6px;margin-top:.5em}
+.navs .next{flex:1;min-height:2.6em;font-size:var(--fs)}
 .res-set{margin:16px 0 4px;font-weight:800}
 </style>
 <section id="app" class="view"><div class="inner" id="inner"></div></section>
@@ -43,13 +43,13 @@ function home(){G=null;stop();
   '<section class="lesson"><h2>操作</h2><div class="lp">上の番号タブで小問を切り替える。<br>「次へ」で次の小問、最後の小問の「次へ」で次の組へ進む。<br>タイマーは組ごとに1本（全小問で共通）。0になると、その組は答えたところまでで次へ進む。</div></section>'+
   '<button class="next" style="width:100%" onclick="start()">開始</button>';}
 function start(){G={si:0,t0:Date.now(),ans:SETS.map(function(s){return s.subs.map(function(){return null;});})};openSet();}
-function openSet(){G.ti=0;G.q0=Date.now();G.fs=15;G.cp=false;for(var i=G.subs=SETS[G.si].subs.length-1;i>=0;i--){G.ti=i;draw();}G.ti=0;draw();run();}
+function openSet(){G.ti=0;G.q0=Date.now();G.fs=20;G.cp=false;for(var i=G.subs=SETS[G.si].subs.length-1;i>=0;i--){G.ti=i;draw();}G.ti=0;draw();run();}
 function stop(){if(tk){clearInterval(tk);tk=null;}}
 function run(){stop();tk=setInterval(function(){var s=SETS[G.si],now=Date.now(),left=1-(now-G.q0)/(limOf(s)*1000),b=document.getElementById('mbar'),g=document.getElementById('mall');
   if(b){b.style.width=Math.max(0,left*100)+'%';b.className=left>0.5?'':left>0.2?'warn':'end';}
   if(g)g.style.width=Math.max(0,100-(now-G.t0)/TOTAL*100)+'%';
   if(left<=0)nextSet();if(now-G.t0>=TOTAL)finish();},200);}
-function draw(){var s=SETS[G.si],u=s.subs[G.ti],a=G.ans[G.si][G.ti],h='<div class="'+(G.cp?'kq':'kn')+'" id="kq">'+bar((G.si+1)+'問目');
+function draw(){var s=SETS[G.si],u=s.subs[G.ti],a=G.ans[G.si][G.ti],h='<div class="'+'kq'+'" id="kq">'+bar((G.si+1)+'問目');
   var lf=1-(Date.now()-G.q0)/(limOf(s)*1000),lt=Math.max(0,100-(Date.now()-G.t0)/TOTAL*100);
   h+='<div class="timer mock-all"><i id="mall" style="width:'+lt+'%"></i></div><div class="timer"><i id="mbar" class="'+(lf>0.5?'':lf>0.2?'warn':'end')+'" style="width:'+Math.max(0,lf*100)+'%"></i></div>';
   h+='<div class="q stem">'+s.stem+'</div>';
@@ -59,13 +59,13 @@ function draw(){var s=SETS[G.si],u=s.subs[G.ti],a=G.ans[G.si][G.ti],h='<div clas
   h+='</div><div class="navs">'+(G.ti>0?'<button class="next ghost" onclick="tab('+(G.ti-1)+')">前へ</button>':'')+'<button class="next" onclick="go()">次へ</button></div></div>';
   el().innerHTML=h;fit();}
 /* 一画面に収まるまで文字を小さくする（最小9px）。組の中では一番小さい大きさにそろえ、タブを切り替えても文章の位置が動かないようにする */
+/* 一画面ぎりぎりに収まる一番大きい文字にする（上限20px、下限9px）。組の中では一番小さい値にそろえる */
 function fit(){var k=document.getElementById('kq');if(!k)return;
-  var over=function(){var r=k.getBoundingClientRect();return r.top+k.scrollHeight>window.innerHeight-8||k.scrollWidth>k.clientWidth+1;};
-  if(!G.cp){if(!over())return;G.cp=true;k.className='kq';}
-  var fs=G.fs||15;k.style.setProperty('--fs',fs+'px');
-  while(fs>9&&over()){fs-=0.5;k.style.setProperty('--fs',fs+'px');}
+  var over=function(){var r=k.getBoundingClientRect();return r.top+k.scrollHeight>window.innerHeight-4||k.scrollWidth>k.clientWidth+1;};
+  var fs=G.fs||20;k.style.setProperty('--fs',fs+'px');
+  while(fs>9&&over()){fs-=0.25;k.style.setProperty('--fs',fs+'px');}
   G.fs=fs;}
-window.addEventListener('resize',function(){if(G){G.fs=15;G.cp=false;var t=G.ti;for(var i=SETS[G.si].subs.length-1;i>=0;i--){G.ti=i;draw();}G.ti=t;draw();}});
+window.addEventListener('resize',function(){if(G){G.fs=20;G.cp=false;var t=G.ti;for(var i=SETS[G.si].subs.length-1;i>=0;i--){G.ti=i;draw();}G.ti=t;draw();}});
 function tab(i){G.ti=i;draw();}
 function pick(i){var u=SETS[G.si].subs[G.ti],r=G.ans[G.si];
   if(multi(u)){var x=(r[G.ti]||[]).slice(),k=x.indexOf(i);if(k>=0)x.splice(k,1);else x.push(i);r[G.ti]=x;}else r[G.ti]=i;draw();}
