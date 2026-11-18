@@ -65,7 +65,7 @@ var titleV=document.getElementById('title'), appV=document.getElementById('app')
 var S={view:'menu'};
 var PARENT={about:'menu',levels:'menu',fields:'levels',stages:'fields',quiz:'stages',clear:'stages',lesson:'stages',ai:'aihome',reset:'menu',howto:'menu',ailesson:'aihome',aicheck:'aihome',aihome:'menu',aiplace:'aihome',aiintro:'aihome',aiexam:'aihome',mock:'menu',mockq:'mock',mockres:'mock',aiset:'aihome',mockset:'mock'};
 /* AIモード（js/ai.js）が使う共通の部品 */
-var SPI=window.SPI={stopTimer:function(){stopTimer();},setState:function(){return Z;},setUse:function(z,c){Z=z;setReset(c);},setStart:function(){setStart();},barAttr:barAttr,barReset:barReset,views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
+var SPI=window.SPI={stopTimer:function(){stopTimer();},setState:function(){return Z;},setUse:function(z,c){Z=z;setReset(c);},setStart:function(){setStart();},setGrade:function(to){gradeSet(to);},barAttr:barAttr,barReset:barReset,views:{},acts:{},state:function(){return S;},go:function(v){go(v);},render:function(){render();},
   inner:function(){return inner;},logAnswer:function(r){logAnswer(r);},classify:classify,targetOf:targetOf,qid:qid,
   shuffle:function(x){return shuffle(x);},cleared:function(f,l,k){return cleared(f,l,k);},
   markCleared:function(f,l,k){P[f+'|'+l+'|'+k]=1;save();},
