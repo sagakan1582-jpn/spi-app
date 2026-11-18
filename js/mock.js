@@ -34,7 +34,7 @@ var RT=[[3,0.15],[4,0.2],[5,0.4],[6,0.5],[7,0.6]];
 function rateOf(th){if(th<=RT[0][0])return RT[0][1];for(var i=1;i<RT.length;i++)if(th<=RT[i][0]){var a=RT[i-1],b=RT[i];return a[1]+(b[1]-a[1])*(th-a[0])/(b[0]-a[0]);}return RT[RT.length-1][1];}
 /* 「すべて選ぶ」の上限（受検者報告：7＝2〜3回／6＝1〜2回／5以下＝0〜2回） */
 function cbCap(th){return th>=P.c3?3:th>=P.c2?2:th>=P.gc?1:0;}
-function start(){T={th:4,cd:0,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0,inf:0};nextQ();}
+function start(){T={th:4,cd:0,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0,inf:0,n:0};nextQ();}
 function limOf(c){return c.k==='m'?180:c.k==='e'?120:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
 function bOf(x){return x.k==='m'?(x.l===7?7:6.3):x.k==='e'?(x.l===7?6.3:5.5):x.l;}
 function estTheta(){var num=0,den=0;
@@ -71,12 +71,12 @@ function nextQ(){if(T.i>=60||Date.now()-T.t0>=TOTAL){finish();return;}
 function startSet(f,l,cs,k){k=k||'c';T.cur={f:f,l:l,k:k,set:cs};T.qt0=Date.now();
   var lim=cs.subs.reduce(function(t,u){return t+limOf({k:k,l:u.l||l,f:f});},0)*1000;
   X.setUse({level:l,lim:lim,silent:true,nodk:true,strict:function(){return true;},
-    head:function(){return X.bar((T.i+1)+'問目')+'<div class="timer mock-all" role="img" aria-label="全体の残り時間"><i id="mall" style="width:'+Math.max(0,100-(Date.now()-T.t0)/TOTAL*100)+'%"></i></div>';},
+    head:function(){return X.bar((T.n+1)+'問目')+'<div class="timer mock-all" role="img" aria-label="全体の残り時間"><i id="mall" style="width:'+Math.max(0,100-(Date.now()-T.t0)/TOTAL*100)+'%"></i></div>';},
     onGraded:function(all,sec,to){var z=X.setState();
       if(to&&Date.now()-T.t0>=TOTAL){finish();return;}
       cs.subs.forEach(function(u,i){var p=z.sa[i],ok=X.isRight(u,p),r=X.classify(ok,Math.round(sec/cs.subs.length),X.targetOf(u,u.l||l),to&&!ok),it={};for(var k2 in u)it[k2]=u[k2];it.q=cs.stem+'<br>'+u.q;
         T.ans.push({f:f,l:u.l||l,k:k,it:it,pick:p,r:r,sec:Math.round(sec/cs.subs.length)});});
-      T.th=estTheta();T.i+=cs.subs.length;nextQ();}},cs);
+      T.th=estTheta();T.i+=cs.subs.length;T.n++;nextQ();}},cs);
   X.go('mockset');X.setStart();stop();
   tick=setInterval(function(){var v=X.state().view;if(v!=='mockset'){stop();return;}var g=document.getElementById('mall');if(g)g.style.width=Math.max(0,100-(Date.now()-T.t0)/TOTAL*100)+'%';
     if(Date.now()-T.t0>=TOTAL){X.stopTimer();finish();}},200);}
@@ -94,7 +94,7 @@ function answer(i,to){stop();
   T.ans.push({f:c.f,l:c.l,k:c.k,it:c.it,pick:i,r:r,sec:sec});
   X.logAnswer({t:Date.now(),f:c.f,l:c.l,s:'mock',q:X.qid(c.it),r:r,sec:sec,tg:tg,pick:i,ai:'mock'});
   T.th=estTheta();
-  T.i++;nextQ();}
+  T.i++;T.n++;nextQ();}
 function okOf(x){return x.r==='fast'||x.r==='slow';}
 function okRate(xs){return xs.length?xs.filter(okOf).length/xs.length:0;}
 function stats(){var n=T.ans.length,inf=T.ans.filter(function(x){return x.k!=='c';}).length;
@@ -122,7 +122,7 @@ function viewTop(){var h=X.bar('模擬テスト'),hs=hist().slice(-5).reverse();
   if(hs.length){h+='<div class="tbl-wrap mock-hist"><table class="tbl"><tr><th>日時</th><th>推定段階</th><th>正解</th></tr>';
     hs.forEach(function(x){h+='<tr><td>'+fmt(x.t)+'</td><td>'+(x.est==null?'-':x.est)+'</td><td>'+x.ok+' / '+x.n+'</td></tr>';});h+='</table></div>';}
   return h;}
-function viewQ(){var c=T.cur,h=X.bar((T.i+1)+'問目');
+function viewQ(){var c=T.cur,h=X.bar((T.n+1)+'問目');
   h+='<div class="timer mock-all" role="img" aria-label="全体の残り時間"><i id="mall" style="width:'+Math.max(0,100-(Date.now()-T.t0)/TOTAL*100)+'%"></i></div><div class="timer" role="img" aria-label="制限時間"><i id="mbar"'+X.barAttr(T.qt0,limOf(c)*1000)+'></i></div>';
   h+='<div class="q">'+c.it.q+'</div>'+X.choicesHtml(c.it,null,T.sel,'mockpick','mocksubmit');
   return h;}
