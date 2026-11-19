@@ -25,13 +25,12 @@ function levels(){return LEVELS.filter(function(l){return fields(l).length;});}
      推論の割合は θ に応じた目標（rateOf）に合わせ、足りなければ推論、足りていれば計算を出す（計算も最後まで出続ける）。
      推論は問題集の問題だけ（組問と組でない問題）。「すべて選ぶ」を含む画面は θ に応じた上限（cbCap）まで、間に1つ選ぶ画面を cd 問はさむ。
    - 全体23分、時間切れまで。1問目は表の読み取り（指標4）。
-   - 1問の制限時間（本番の推定）：計算 指標3・4は90秒、指標5と表は120秒、推論は1小問あたり1つ選ぶ80秒・すべて選ぶ110秒（LIM）。
+   - 1問の制限時間（本番の推定）：計算 指標3・4は90秒、指標5と表は120秒、1つ選ぶ推論120秒、すべて選ぶ180秒（1小問あたり）。
    - 推定段階＝最後の θ に sh（0.3）を足した整数部分（1〜7）。「すべて選ぶ」の回数は判定には使わない。結果として受検者報告の目安
-     （7＝cb×3以上／6・5＝cb×2／4＝cb×1／3＝なし）に合うよう c1〜c3 を推定段階の境目に置いた（app-tools/sim_population_set.js）。段階7は回答数12以上も必要。 */
-var P=window.MOCK_P||{c1:3.7,c2:4.7,c3:6.7,slow:0.7,cd:1,sh:0.3,n7:12},SL=1.7,TBL=['表の解釈','情報の読み取り'];
-/* 推論の1問（小問）の制限時間（2026-11-20 見直し）。本番は非言語23分で約20問（推論8〜10問）＝1問あたり約70秒で、受検者は「推論は時間が極めて足りない」と報告。
-   旧：1つ選ぶ120秒・すべて選ぶ180秒は長すぎ、問題集レベルの推論でも時間内に解けて推定が+1ほど高く出ていた */
-var LIM={one:80,cb:110};
+     （7＝cb×3以上／6・5＝cb×2／4＝cb×1／3＝なし）に合うよう c1〜c3 を推定段階の境目に置いた（app-tools/sim_population_set.js）。 */
+var P=window.MOCK_P||{c1:3.7,c2:4.7,c3:6.7,slow:0.7,cd:1,sh:0.3},SL=1.7,TBL=['表の解釈','情報の読み取り'];
+/* 推論の1問（小問）の制限時間。2026-11-20 ユーザー指示で変えない（問題を難しくすると時間は自然に足りなくなる） */
+var LIM={one:120,cb:180};
 /* 推論の割合の目標（受検者報告：4＝5割未満／5＝4割／6・7＝5割以上）。θ の間は直線でつなぐ。推定段階6（θ≥5.7）で5割を超えるようにする。割合は画面（組問1つ＝1問）で数える */
 var RT=[[3,0.15],[4,0.25],[5,0.35],[5.7,0.55],[7,0.65]];
 function rateOf(th){if(th<=RT[0][0])return RT[0][1];for(var i=1;i<RT.length;i++)if(th<=RT[i][0]){var a=RT[i-1],b=RT[i];return a[1]+(b[1]-a[1])*(th-a[0])/(b[0]-a[0]);}return RT[RT.length-1][1];}
@@ -124,8 +123,7 @@ function okRate(xs){return xs.length?xs.filter(okOf).length/xs.length:0;}
 function stats(){var s=T.scr.slice(0,T.n),n=s.length,inf=s.filter(function(x){return x.k==='i';}).length;
   return {n:n,inf:inf,r:n?inf/n:0,cb:s.filter(function(x){return x.cb;}).length};}
 /* 推定は平均に引き寄せられて低めに出るので、+sh してから切り捨てる（仮想受検者1000人で、高めと低めのずれが同数になる値） */
-/* 段階7は回答数（組問1つ＝1問）が n7（12）以上のときだけ（受検者報告の目安。速く解けないと12問に届かない）。届かなければ6 */
-function estimate(){if(!T.ans.length)return null;var e=clamp(Math.floor(T.th+P.sh),1,7);if(e===7&&stats().n<P.n7)e=6;return e;}
+function estimate(){if(!T.ans.length)return null;return clamp(Math.floor(T.th+P.sh),1,7);}
 function finish(){stop();if(X.state().view==='mockset')X.stopTimer();var est=estimate(),ok=T.ans.filter(okOf).length;
   var st=stats();T.res={est:est,ok:ok,n:st.n,st:st};var rec={t:Date.now(),est:est,ok:ok,n:st.n,th:Math.round(T.th*100)/100},pb0=best(),h=hist();h.push(rec);saveHist(h);
   T.res.pb=est!=null&&better(rec,pb0);if(T.res.pb){try{localStorage.setItem(BKEY,JSON.stringify(rec));}catch(e){}}
