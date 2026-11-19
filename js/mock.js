@@ -28,7 +28,7 @@ function levels(){return LEVELS.filter(function(l){return fields(l).length;});}
    - 1問の制限時間（本番の推定）：計算 指標3・4は90秒、指標5と表は120秒、1つ選ぶ推論120秒、すべて選ぶ180秒（1小問あたり）。
    - 推定段階＝最後の θ に sh（0.3）を足した整数部分（1〜7）。「すべて選ぶ」の回数は判定には使わない。結果として受検者報告の目安
      （7＝cb×3以上／6・5＝cb×2／4＝cb×1／3＝なし）に合うよう c1〜c3 を推定段階の境目に置いた（app-tools/sim_population_set.js）。 */
-var P=window.MOCK_P||{c1:3.7,c2:4.7,c3:6.7,slow:0.7,cd:1,sh:0.3},SL=1.7,TBL=['表の解釈','情報の読み取り'];
+var P=window.MOCK_P||{c1:3.7,c2:4.7,c3:6.7,slow:0.7,cd:1,sh:0.3,n7:12},SL=1.7,TBL=['表の解釈','情報の読み取り'];
 /* 推論の1問（小問）の制限時間。2026-11-20 ユーザー指示で変えない（問題を難しくすると時間は自然に足りなくなる） */
 var LIM={one:120,cb:180};
 /* 推論の割合の目標（受検者報告：4＝5割未満／5＝4割／6・7＝5割以上）。θ の間は直線でつなぐ。推定段階6（θ≥5.7）で5割を超えるようにする。割合は画面（組問1つ＝1問）で数える */
@@ -123,7 +123,8 @@ function okRate(xs){return xs.length?xs.filter(okOf).length/xs.length:0;}
 function stats(){var s=T.scr.slice(0,T.n),n=s.length,inf=s.filter(function(x){return x.k==='i';}).length;
   return {n:n,inf:inf,r:n?inf/n:0,cb:s.filter(function(x){return x.cb;}).length};}
 /* 推定は平均に引き寄せられて低めに出るので、+sh してから切り捨てる（仮想受検者1000人で、高めと低めのずれが同数になる値） */
-function estimate(){if(!T.ans.length)return null;return clamp(Math.floor(T.th+P.sh),1,7);}
+/* 段階7は回答数（組問1つ＝1問）が12以上のときだけ（2026-11-20 ユーザー指示：段階7の問題を解けただけではダメ）。届かなければ6 */
+function estimate(){if(!T.ans.length)return null;var e=clamp(Math.floor(T.th+P.sh),1,7);if(e===7&&stats().n<P.n7)e=6;return e;}
 function finish(){stop();if(X.state().view==='mockset')X.stopTimer();var est=estimate(),ok=T.ans.filter(okOf).length;
   var st=stats();T.res={est:est,ok:ok,n:st.n,st:st};var rec={t:Date.now(),est:est,ok:ok,n:st.n,th:Math.round(T.th*100)/100},pb0=best(),h=hist();h.push(rec);saveHist(h);
   T.res.pb=est!=null&&better(rec,pb0);if(T.res.pb){try{localStorage.setItem(BKEY,JSON.stringify(rec));}catch(e){}}
