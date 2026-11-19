@@ -23,20 +23,39 @@ function levels(){return LEVELS.filter(function(l){return fields(l).length;});}
      目標時間より遅い正解は「b−slow の問題に正解した」とみなす（ぎりぎりの正解では上の段階の証拠にならない）。時間切れは不正解。
    - 次の問題は θ に合わせる：計算は θ を四捨五入した指標3〜5（分野は指標ごとにランダムな位置から順に回す）。
      推論の割合は θ に応じた目標（rateOf）に合わせ、足りなければ推論、足りていれば計算を出す（計算も最後まで出続ける）。
-     推論のうち「すべて選ぶ」は θ に応じた上限（cbCap）まで、間に1つ選ぶ推論を cd 問はさむ。θ≥g7 なら指標7。
+     推論は問題集の問題だけ（組問と組でない問題）。「すべて選ぶ」を含む画面は θ に応じた上限（cbCap）まで、間に1つ選ぶ画面を cd 問はさむ。
    - 全体23分、時間切れまで。1問目は表の読み取り（指標4）。
-   - 1問の制限時間（本番の推定）：計算 指標3・4は90秒、指標5と表は120秒、1つ選ぶ推論120秒、すべて選ぶ180秒。
+   - 1問の制限時間（本番の推定）：計算 指標3・4は90秒、指標5と表は120秒、推論は1小問あたり1つ選ぶ80秒・すべて選ぶ110秒（LIM）。
    - 推定段階＝最後の θ に sh（0.3）を足した整数部分（1〜7）。「すべて選ぶ」の回数は判定には使わない。結果として受検者報告の目安
-     （7＝cb×3以上／6・5＝cb×2／4＝cb×1／3＝なし）に合うよう gc・g7 を仮想受検者で調整した（app-tools/sim_population.js）。 */
-var P=window.MOCK_P||{gc:5.0,g7:6.3,slow:0.7,cd:2,sh:0.3,c2:5.5,c3:6.5},SL=1.7,TBL=['表の解釈','情報の読み取り'];
-/* 推論の割合の目標（受検者報告：4＝推論2問程度／5＝4割／6＝5割／7＝6割）。θ の間は直線でつなぐ */
-var RT=[[3,0.15],[4,0.2],[5,0.4],[6,0.5],[7,0.6]];
+     （7＝cb×3以上／6・5＝cb×2／4＝cb×1／3＝なし）に合うよう c1〜c3 を推定段階の境目に置いた（app-tools/sim_population_set.js）。段階7は回答数12以上も必要。 */
+var P=window.MOCK_P||{c1:3.7,c2:4.7,c3:6.7,slow:0.7,cd:1,sh:0.3,n7:12},SL=1.7,TBL=['表の解釈','情報の読み取り'];
+/* 推論の1問（小問）の制限時間（2026-11-20 見直し）。本番は非言語23分で約20問（推論8〜10問）＝1問あたり約70秒で、受検者は「推論は時間が極めて足りない」と報告。
+   旧：1つ選ぶ120秒・すべて選ぶ180秒は長すぎ、問題集レベルの推論でも時間内に解けて推定が+1ほど高く出ていた */
+var LIM={one:80,cb:110};
+/* 推論の割合の目標（受検者報告：4＝5割未満／5＝4割／6・7＝5割以上）。θ の間は直線でつなぐ。推定段階6（θ≥5.7）で5割を超えるようにする。割合は画面（組問1つ＝1問）で数える */
+var RT=[[3,0.15],[4,0.25],[5,0.35],[5.7,0.55],[7,0.65]];
 function rateOf(th){if(th<=RT[0][0])return RT[0][1];for(var i=1;i<RT.length;i++)if(th<=RT[i][0]){var a=RT[i-1],b=RT[i];return a[1]+(b[1]-a[1])*(th-a[0])/(b[0]-a[0]);}return RT[RT.length-1][1];}
-/* 「すべて選ぶ」の上限（受検者報告：7＝2〜3回／6＝1〜2回／5以下＝0〜2回） */
-function cbCap(th){return th>=P.c3?3:th>=P.c2?2:th>=P.gc?1:0;}
-function start(){T={th:4,cd:0,i:0,ans:[],used:[],t0:Date.now(),fi:{},cb:0,inf:0,n:0};nextQ();}
-function limOf(c){return c.k==='m'?180:c.k==='e'?120:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
-function bOf(x){return x.k==='m'?(x.l===7?7:6.3):x.k==='e'?(x.l===7?6.3:5.5):x.l;}
+/* 「すべて選ぶ」を含む画面の上限（受検者報告：7＝cb×3／6・5＝cb×2／4＝cb×1）。しきい値は推定段階の境目（θ+0.3 の整数部分）に合わせた */
+function cbCap(th){return th>=P.c3?3:th>=P.c2?2:th>=P.c1?1:0;}
+function start(){T={th:4,cd:0,i:0,ans:[],used:[],uinf:[],scr:[],t0:Date.now(),fi:{},cb:0,inf:0,n:0};nextQ();}
+function limOf(c){return c.k==='m'?LIM.cb:c.k==='e'?LIM.one:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
+/* 推論の難しさ b（2026-11-20）：形式と選択肢の数で決める（すべて選ぶ・選択肢が多いほど難しい） */
+function bInf(it){var n=(it&&it.c||[]).length;return X.isMulti(it)?(n>=8?7:n>=6?6.6:6.3):(n>=6?6:5.5);}
+function bOf(x){return x.k==='c'?x.l:bInf(x.it);}
+/* 推論の出題候補：問題集の組問（set_suiron.js）と、組でない問題集の問題（book_suiron*.js の bk〜）。AIで作った推論（suiron_6/7.js・gen_suiron.js）は使わない */
+var INF=null;
+function infPool(){if(INF)return INF;var s=[],inSet={},B=BANK['推論']||{};
+  [6,7].forEach(function(l){if(!window.SETCORE)return;SETCORE.list('推論',l).forEach(function(t){s.push({id:t.id,set:t,l:l});(t.ids||[]).forEach(function(i){[].concat(i).forEach(function(j){inSet['bk'+j]=1;});});});});
+  [6,7].forEach(function(l){((B[l]||{}).real||[]).forEach(function(x){if(/^bk/.test(x.id||'')&&!inSet[x.id])s.push({id:x.id,src:x,l:l});});});
+  return INF=s;}
+function hasCb(cs){return cs.subs.some(function(u){return X.isMulti(u);});}
+function pickInf(want){var p=X.shuffle(infPool().filter(function(o){return T.uinf.indexOf(o.id)<0;})),keep=null;
+  if(!p.length){T.uinf=[];p=X.shuffle(infPool());}
+  for(var j=0;j<p.length&&j<40;j++){var o=p[j],cs=null;
+    if(o.set){for(var n=0;n<4&&!cs;n++)cs=SETCORE.make('推論',o.set);}
+    else{var it=X.inst(o.src);if(it)cs={stem:'',subs:[it],single:1};}
+    if(!cs)continue;var r={o:o,cs:cs};if(want==null||hasCb(cs)===want){T.uinf.push(o.id);return r;}if(!keep)keep=r;}
+  if(keep)T.uinf.push(keep.o.id);return keep;}
 function estTheta(){var num=0,den=0;
   for(var t=0;t<=8.5;t+=0.05){var w=Math.exp(-Math.pow(t-4.5,2)/(2*1.25*1.25));
     T.ans.forEach(function(x){var b=bOf(x)-(x.r==='slow'?P.slow:0),p=1/(1+Math.exp(-SL*(t-b)));w*=okOf(x)?p:1-p;});
@@ -54,28 +73,32 @@ function pickItem(l,want,only){var fs=fields(l).filter(function(f){return !only|
   return null;}
 function nextQ(){if(T.i>=60||Date.now()-T.t0>=TOTAL){finish();return;}
   /* 推論を出すのは、これまでの推論の数が「目標の割合×(これまでの問題数+1)」に届いていないとき。足りていれば計算 */
-  var l,w=null,k,only=null,slot=T.i===0?'t':(!fields(6).length?'c':T.inf<rateOf(T.th)*(T.i+1)?'i':'c');
-  if(slot!=='i'){k='c';l=clamp(Math.round(T.th),3,5);while(l>3&&!fields(l).length)l--;if(slot==='t'){only=TBL;l=4;}}
-  else if(T.cd<=0&&T.cb<cbCap(T.th)){k='m';w=true;l=T.th>=P.g7&&fields(7).length?7:6;T.cd=P.cd;}
-  else{k='e';w=false;l=T.th>=P.g7&&fields(7).length?7:6;T.cd--;}
+  var l,w=null,k,only=null,slot=T.i===0?'t':(!infPool().length?'c':T.inf<rateOf(T.th)*(T.n+1)?'i':'c');
+  if(slot==='i'){var want=T.cd<=0&&T.cb<cbCap(T.th),r=pickInf(want);if(!r){finish();return;}
+    var cb=hasCb(r.cs);if(cb)T.cd=P.cd;else T.cd--;T.inf++;
+    if(r.cs.single){var it=r.cs.subs[0];T.cur={f:'推論',l:r.o.l,it:it,k:X.isMulti(it)?'m':'e'};T.scr.push({k:'i',cb:cb});if(cb)T.cb++;T.qt0=Date.now();T.sel=[];X.go('mockq');run();return;}
+    startSet('推論',r.o.l,r.cs,'e');return;}
+  k='c';l=clamp(Math.round(T.th),3,5);while(l>3&&!fields(l).length)l--;if(slot==='t'){only=TBL;l=4;}
   T.cur=pickItem(l,w,only);if(!T.cur){finish();return;}
   /* 本番形式：計算はその分野に組問（2タブ）があれば組で出す（本番は表の初回以外すべて2タブ） */
   /* 最初の表は本番どおりタブの多い組（4タブを優先） */
   if(slot==='t'&&window.SETCORE){var tc=[];[4,5].forEach(function(l2){SETCORE.list(TBL[0],l2).forEach(function(t){if(t.tabs===4)tc.push({l:l2,t:t});});});var best=null;
     for(var n2=0;n2<12&&tc.length;n2++){var o=tc[Math.floor(Math.random()*tc.length)],m=SETCORE.make(TBL[0],o.t);if(m&&(!best||m.subs.length>best.m.subs.length))best={l:o.l,m:m};if(best&&best.m.subs.length>=4)break;}
     if(best){T.cur={f:TBL[0],l:best.l,it:best.m.subs[0]};startSet(TBL[0],best.l,best.m,'c');return;}}
-  if((k==='c'||k==='e')&&window.SETCORE&&SETCORE.list(T.cur.f,l).length){var cs=null,ts=SETCORE.list(T.cur.f,l).filter(function(t){return !t.tabs;});for(var n=0;n<6&&!cs;n++)cs=SETCORE.make(T.cur.f,ts[Math.floor(Math.random()*ts.length)]);
-    if(cs){if(k==='e')T.inf+=cs.subs.length;startSet(T.cur.f,l,cs,k);return;}}
-  T.cur.k=X.isMulti(T.cur.it)?'m':(k==='m'?'e':k);if(T.cur.k==='m')T.cb++;if(T.cur.k!=='c')T.inf++;
+  if(window.SETCORE&&SETCORE.list(T.cur.f,l).length){var cs=null,ts=SETCORE.list(T.cur.f,l).filter(function(t){return !t.tabs;});for(var n=0;n<6&&!cs&&ts.length;n++)cs=SETCORE.make(T.cur.f,ts[Math.floor(Math.random()*ts.length)]);
+    if(cs){startSet(T.cur.f,l,cs,'c');return;}}
+  T.cur.k='c';var cb0=X.isMulti(T.cur.it);T.scr.push({k:'c',cb:cb0});if(cb0)T.cb++;
   T.qt0=Date.now();T.sel=[];X.go('mockq');run();}
-function startSet(f,l,cs,k){k=k||'c';T.cur={f:f,l:l,k:k,set:cs};T.qt0=Date.now();
-  var lim=cs.subs.reduce(function(t,u){return t+limOf({k:k,l:u.l||l,f:f});},0)*1000;
+/* 小問ごとの形式：推論は 1つ選ぶ＝e・すべて選ぶ＝m、計算・表は c */
+function subK(k,u){return k==='c'?'c':X.isMulti(u)?'m':'e';}
+function startSet(f,l,cs,k){k=k||'c';T.cur={f:f,l:l,k:k,set:cs};T.qt0=Date.now();var cb=hasCb(cs);T.scr.push({k:k==='c'?'c':'i',cb:cb});if(cb)T.cb++;
+  var lim=cs.subs.reduce(function(t,u){return t+limOf({k:subK(k,u),l:u.l||l,f:f});},0)*1000;
   X.setUse({level:l,lim:lim,silent:true,nodk:true,strict:function(){return true;},
     head:function(){return X.bar((T.n+1)+'問目')+'<div class="timer mock-all" role="img" aria-label="全体の残り時間"><i id="mall" style="width:'+Math.max(0,100-(Date.now()-T.t0)/TOTAL*100)+'%"></i></div>';},
     onGraded:function(all,sec,to){var z=X.setState();
       if(to&&Date.now()-T.t0>=TOTAL){finish();return;}
       cs.subs.forEach(function(u,i){var p=z.sa[i],ok=X.isRight(u,p),r=X.classify(ok,Math.round(sec/cs.subs.length),X.targetOf(u,u.l||l),to&&!ok),it={};for(var k2 in u)it[k2]=u[k2];it.q=cs.stem+'<br>'+u.q;
-        T.ans.push({f:f,l:u.l||l,k:k,it:it,pick:p,r:r,sec:Math.round(sec/cs.subs.length)});});
+        T.ans.push({f:f,l:u.l||l,k:subK(k,u),it:it,pick:p,r:r,sec:Math.round(sec/cs.subs.length)});});
       T.th=estTheta();T.i+=cs.subs.length;T.n++;nextQ();}},cs);
   X.go('mockset');X.setStart();stop();
   tick=setInterval(function(){var v=X.state().view;if(v!=='mockset'){stop();return;}var g=document.getElementById('mall');if(g)g.style.width=Math.max(0,100-(Date.now()-T.t0)/TOTAL*100)+'%';
@@ -97,10 +120,12 @@ function answer(i,to){stop();
   T.i++;T.n++;nextQ();}
 function okOf(x){return x.r==='fast'||x.r==='slow';}
 function okRate(xs){return xs.length?xs.filter(okOf).length/xs.length:0;}
-function stats(){var n=T.ans.length,inf=T.ans.filter(function(x){return x.k!=='c';}).length;
-  return {n:n,inf:inf,r:n?inf/n:0,cb:T.ans.filter(function(x){return x.k==='m';}).length,c7:T.ans.filter(function(x){return x.k==='m'&&x.l===7;}).length};}
+/* 回答数・推論の割合・cb は画面（組問1つ＝1問）で数える（受検者報告の数え方）。全体の時間切れで答えていない最後の画面は数えない */
+function stats(){var s=T.scr.slice(0,T.n),n=s.length,inf=s.filter(function(x){return x.k==='i';}).length;
+  return {n:n,inf:inf,r:n?inf/n:0,cb:s.filter(function(x){return x.cb;}).length};}
 /* 推定は平均に引き寄せられて低めに出るので、+sh してから切り捨てる（仮想受検者1000人で、高めと低めのずれが同数になる値） */
-function estimate(){if(!T.ans.length)return null;return clamp(Math.floor(T.th+P.sh),1,7);}
+/* 段階7は回答数（組問1つ＝1問）が n7（12）以上のときだけ（受検者報告の目安。速く解けないと12問に届かない）。届かなければ6 */
+function estimate(){if(!T.ans.length)return null;var e=clamp(Math.floor(T.th+P.sh),1,7);if(e===7&&stats().n<P.n7)e=6;return e;}
 function finish(){stop();if(X.state().view==='mockset')X.stopTimer();var est=estimate(),ok=T.ans.filter(okOf).length;
   var st=stats();T.res={est:est,ok:ok,n:st.n,st:st};var rec={t:Date.now(),est:est,ok:ok,n:st.n,th:Math.round(T.th*100)/100},pb0=best(),h=hist();h.push(rec);saveHist(h);
   T.res.pb=est!=null&&better(rec,pb0);if(T.res.pb){try{localStorage.setItem(BKEY,JSON.stringify(rec));}catch(e){}}
@@ -138,7 +163,7 @@ function viewRes(){var r=T.res,h=X.bar('模擬テスト');
       h+='<div class="result"><div class="q">'+it.q+'</div>'+(X.pickText(it,x.pick)?'<div class="calc"><b>選んだ答え</b>　'+X.pickText(it,x.pick)+'</div>':'')+
         '<div class="calc"><b>'+X.inwHead(it,x.f)+'</b>　'+X.inwText(it,x.f)+'</div>'+(it.fig?X.figHtml(it.fig):'')+'<div class="calc">'+(it.calc||'')+'</div><div class="calc"><b>答え</b>　'+(X.isMulti(it)?X.ansText(it):'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[it.a]+'　'+it.c[it.a])+'</div></div>';}});
   return h+'</div><button class="next" data-act="mocktop">もどる</button>';}
-X.mockT=function(){return T;};X.mockAns=function(i,to){answer(i,to);};X.mockLim=function(){return limOf(T.cur);};
+X.mockT=function(){return T;};X.mockB=bInf;X.mockAns=function(i,to){answer(i,to);};X.mockLim=function(){return limOf(T.cur);};
 X.views.mock=viewTop;X.views.mockq=viewQ;X.views.mockres=viewRes;
 X.acts.mock=function(){X.go('mock');};
 X.acts.mockstart=function(){start();};
