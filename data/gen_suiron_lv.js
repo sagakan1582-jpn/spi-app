@@ -1,10 +1,11 @@
 /* 推論：指標6・7を分けて作る組問（2026-11-20）。
-   問題集の推論の文の形（配達の順番＝問26・スピーチ＝問9・曜日の当番＝問21・弁当3種類＝問38）をそのまま使い、
+   問題集の推論の文の形（配達の順番＝問26・スピーチ＝問9・曜日の当番＝問21・弁当3種類＝問38・くじの順番と当たり＝問30）をそのまま使い、
    人・条件の組み合わせを毎回変える。答えはすべて総当たりで決める。
    難しさは「条件の数」と「条件を満たす場合（並び・組）の数」で決める（ユーザーの本番の体感：難しい推論は条件が少なく、絞り込みが難しい）。
      指標6：5人（曜日は4人）、条件4つ、残る場合 3〜7通り
      指標7：6人（曜日・弁当は5人）、条件3つ、残る場合 8〜16通り（問題集の難問：問30は8通り）
-   どの条件も、外すと場合が増える（むだな条件はない）。
+   どの条件も、外すと場合が増える（むだな条件はない）。くじは順番と当たり・はずれの2つを同時に追う（5人・当たり2本）。
+   小問だけに条件を足す形（「〜場合、」）も、指標6で35%・指標7で50%の小問に入れる（足すと2通り以上残る）。
    問い方は問題集と同じ4つ：すべて選ぶ（あり得る順番・曜日・人）／必ずしも誤りとはいえない推論／確実に間違っている推論／確定に必要な情報（ア〜ウの8択）。
    SETS['推論'][6・7] に組問（共通の文章＋小問2つ）として入れる（setcore の t.lvgen）。BANK['推論'][6・7].real にも1問ずつのテンプレートとして入れる。
    verify は条件をデータから読み直し、別の数え上げ（1人ずつ決める深さ優先）で解き直す。 */
@@ -33,6 +34,14 @@ var FR={
   st:{pos:function(a,k){return a+'は'+k+'番目にスピーチをした';},before:function(a,b){return a+'は'+b+'より先にスピーチをした';}},
   cb:function(a){return a+'のスピーチは何番目か。可能性があるものをすべて選びなさい。';},
   all:function(n){return n+'人のスピーチの順番';}},
+ lot:{k:'lot',
+  stem:function(n,m){return NM.slice(0,n).join('、')+'の'+n+'人が、1回ずつくじを引いた。くじは当たり'+m+'本とはずれ'+(n-m)+'本で、当たり・はずれと引いた順番について、次のことがわかっている。なお、引いたくじは戻さないものとする。';},
+  c:{before:function(a,b){return a+'は'+b+'よりも先に引いた';},next:function(a,b){return b+'は'+a+'の次に引いた';},pos:function(a,k){return a+'は'+k+'番目に引いた';},
+     hit:function(a){return a+'は当たりだった';},miss:function(a){return a+'ははずれだった';},firsthit:function(a){return '最初に当たりを引いたのは'+a+'だった';},
+     nomiss2:function(){return 'はずれは連続しない';},nohit2:function(){return '当たりは連続しない';}},
+  st:{pos:function(a,k){return a+'は'+k+'番目に引いた';},before:function(a,b){return a+'は'+b+'よりも先に引いた';},hit:function(a){return a+'は当たりを引いた';}},
+  cb:function(a){return a+'がくじを引いた順番として考えられるものをすべて選びなさい。';},
+  all:function(n){return '全員のくじを引いた順番と当たり・はずれ';}},
  week:{k:'wk',
   stem:function(n,m){return NM.slice(0,n).join('、')+'の'+n+'人は、月曜日から'+DY[m-1]+'曜日までのうち、週に1日ずつ当番をする。'+n+'人はそれぞれ、別の曜日に当番をする。当番をする曜日について、次のことがわかっている。';},
   c:{after:function(a,b,d){return a+'の'+d+'日後に'+b+'が当番をする';},before:function(a,b){return a+'は'+b+'より前の曜日に当番をする';},noadj:function(a,b){return a+'と'+b+'は続いた曜日に当番をしない';},
@@ -55,13 +64,19 @@ function ev(c,x){var a=c[1],b=c[2];switch(c[0]){
  case 'after':return x[b]===x[a]+c[3];case 'day':return x[a]===b;case 'nday':return x[a]!==b;
  case 'same':return x[a]===x[b];case 'diff':return x[a]!==x[b];case 'is':return x[a]===b;case 'isnot':return x[a]!==b;
  case 'cnt':return x.filter(function(v){return v===a;}).length===b;
- case 'more':return x.filter(function(v){return v===a;}).length>x.filter(function(v){return v===b;}).length;}
+ case 'more':return x.filter(function(v){return v===a;}).length>x.filter(function(v){return v===b;}).length;
+ /* くじ：x[人]＝順番、x[n＋人]＝当たり(1)・はずれ(0)。c[3]＝人数 n */
+ case 'hit':return x[c[3]+a]===1;case 'miss':return x[c[3]+a]===0;
+ case 'firsthit':var n=c[3];if(x[n+a]!==1)return false;for(var j=0;j<n;j++)if(x[n+j]===1&&x[j]<x[a])return false;return true;
+ case 'nomiss2':case 'nohit2':var n2=c[3],sq=[],w=c[0]==='nomiss2'?0:1;for(var i=0;i<n2;i++)sq[x[i]]=x[n2+i];for(var p=0;p+1<n2;p++)if(sq[p]===w&&sq[p+1]===w)return false;return true;}
  return false;}
 /* 推論の文（statement）の意味 */
-function evs(s,x){var a=s[1],b=s[2];switch(s[0]){case 'pos':case 'day':case 'is':return x[a]===b;case 'before':return x[a]<x[b];case 'cnt':return x.filter(function(v){return v===a;}).length===b;}return false;}
+function evs(s,x){var a=s[1],b=s[2];switch(s[0]){case 'hit':return x[b+a]===1;case 'pos':case 'day':case 'is':return x[a]===b;case 'before':return x[a]<x[b];case 'cnt':return x.filter(function(v){return v===a;}).length===b;}return false;}
 /* ---------- すべての場合（make 用：前から全部作って条件で消す） ---------- */
 var CA={};
 function all(k,n,m){var key=k+n+'_'+m;if(CA[key])return CA[key];var out=[];
+ if(k==='lot'){all('ord',n,n).forEach(function(x){(function rec(i,h){if(h.length===m){var y=x.slice();for(var q=0;q<n;q++)y.push(h.indexOf(x[q])>=0?1:0);out.push(y);return;}
+   for(var p=i;p<n;p++){h.push(p);rec(p+1,h);h.pop();}})(0,[]);});return CA[key]=out;}
  (function rec(a){if(a.length===n){if(k!=='grp'||[0,1,2].every(function(t){return a.indexOf(t)>=0;}))out.push(a.slice());return;}
    for(var v=0;v<m;v++){if(k!=='grp'&&a.indexOf(v)>=0)continue;a.push(v);rec(a);a.pop();}})([]);
  return CA[key]=out;}
@@ -70,11 +85,13 @@ function sol(k,n,m,cs){return all(k,n,m).filter(function(x){return cs.every(func
 function rcond(k,n,m){var p=two(n),a=p[0],b=p[1],t;
  if(k==='ord'){t=pk(['before','before','next','gap','gap','noadj','pos','nfirst','nlast']);
    if(t==='gap')return [t,Math.min(a,b),Math.max(a,b),pk([1,1,2])];if(t==='pos')return [t,a,rnd(n)];if(t==='nfirst'||t==='nlast')return [t,a];if(t==='noadj')return [t,Math.min(a,b),Math.max(a,b)];return [t,a,b];}
+ if(k==='lot'){t=pk(['before','before','next','pos','hit','miss','firsthit','nomiss2','nohit2']);
+   if(t==='pos')return [t,a,rnd(n)];if(t==='before'||t==='next')return [t,a,b];return [t,(t==='nomiss2'||t==='nohit2')?0:a,0,n];}
  if(k==='wk'){t=pk(['after','after','before','noadj','day','nday','nday']);
    if(t==='after')return [t,a,b,pk([1,2,2,3])];if(t==='day'||t==='nday')return [t,a,rnd(m)];if(t==='noadj')return [t,Math.min(a,b),Math.max(a,b)];return [t,a,b];}
  t=pk(['same','diff','diff','is','isnot','cnt','more']);
  if(t==='same'||t==='diff')return [t,Math.min(a,b),Math.max(a,b)];if(t==='is'||t==='isnot')return [t,a,rnd(3)];if(t==='cnt')return [t,rnd(3),pk([1,1,2])];var q=two(3);return [t,q[0],q[1]];}
-function ctext(F,c){var f=F.c[c[0]];if(c[0]==='cnt'||c[0]==='more')return c[0]==='cnt'?f(c[1],c[2]):f(c[1],c[2]);
+function ctext(F,c){var f=F.c[c[0]];if(F.k==='lot'){if(c[0]==='pos')return f(NM[c[1]],c[2]+1);if(c[0]==='before'||c[0]==='next')return f(NM[c[1]],NM[c[2]]);return f(NM[c[1]]);}if(c[0]==='cnt'||c[0]==='more')return c[0]==='cnt'?f(c[1],c[2]):f(c[1],c[2]);
  return f(NM[c[1]],typeof c[2]==='number'&&(c[0]==='pos')?c[2]+1:(c[0]==='day'||c[0]==='nday'||c[0]==='is'||c[0]==='isnot')?c[2]:NM[c[2]],c[3]);}
 /* 記号（解説の「記号」の欄） */
 function csym(F,c){var A=NM[c[1]],B=NM[c[2]];switch(c[0]){
@@ -82,19 +99,20 @@ function csym(F,c){var A=NM[c[1]],B=NM[c[2]];switch(c[0]){
  case 'pos':return A+'＝'+(c[2]+1);case 'nfirst':return A+'≠1';case 'nlast':return A+'≠最後';
  case 'after':return B+'＝'+A+'＋'+c[3];case 'day':return A+'＝'+DY[c[2]];case 'nday':return A+'≠'+DY[c[2]];
  case 'same':return A+'＝'+B;case 'diff':return A+'≠'+B;case 'is':return A+'＝'+KN[c[2]].charAt(0);case 'isnot':return A+'≠'+KN[c[2]].charAt(0);
+ case 'hit':return A+'○';case 'miss':return A+'×';case 'firsthit':return '最初の○は'+A;case 'nomiss2':return '××と続かない';case 'nohit2':return '○○と続かない';
  case 'cnt':return KN[c[1]].charAt(0)+'は'+c[2]+'人';case 'more':return KN[c[1]].charAt(0)+' ＞ '+KN[c[2]].charAt(0)+'（人数）';}return '';}
-function stext(F,s){var f=F.st[s[0]];if(s[0]==='cnt')return f(s[1],s[2]);if(s[0]==='pos')return f(NM[s[1]],s[2]+1);if(s[0]==='before')return f(NM[s[1]],NM[s[2]]);return f(NM[s[1]],s[2]);}
+function stext(F,s){var f=F.st[s[0]];if(s[0]==='hit')return f(NM[s[1]]);if(s[0]==='cnt')return f(s[1],s[2]);if(s[0]==='pos')return f(NM[s[1]],s[2]+1);if(s[0]==='before')return f(NM[s[1]],NM[s[2]]);return f(NM[s[1]],s[2]);}
 /* 推論の文の候補 */
 function stPool(k,n,m){var o=[],a,b,v;for(a=0;a<n;a++){
-  if(k==='ord')for(v=0;v<n;v++)o.push(['pos',a,v]);if(k==='wk')for(v=0;v<m;v++)o.push(['day',a,v]);if(k==='grp')for(v=0;v<3;v++)o.push(['is',a,v]);
+  if(k==='ord'||k==='lot')for(v=0;v<n;v++)o.push(['pos',a,v]);if(k==='lot')o.push(['hit',a,n]);if(k==='wk')for(v=0;v<m;v++)o.push(['day',a,v]);if(k==='grp')for(v=0;v<3;v++)o.push(['is',a,v]);
   if(k!=='grp')for(b=0;b<n;b++)if(b!==a)o.push(['before',a,b]);}
  if(k==='grp')for(a=0;a<3;a++)for(v=1;v<=3;v++)o.push(['cnt',a,v]);return o;}
 /* ---------- 難しさ ---------- */
 var LV={6:{n:5,nw:4,ng:5,nc:4,lo:3,hi:7},7:{n:6,nw:5,ng:5,nc:3,lo:8,hi:16}};
 /* ---------- 解説の表 ---------- */
 function table(fr,F,n,m,xs,mark){var k=F.k,head,rows;
- if(k==='ord'){head=[''].concat(NM.slice(0,n).map(function(_,i){return (i+1)+'番目';}));
-   rows=xs.map(function(x,i){var r=[CI[i]||String(i+1)];for(var p=0;p<n;p++){var w=x.indexOf(p);r.push((mark&&mark(w,x)?'!':'')+NM[w]);}return r;});}
+ if(k==='ord'||k==='lot'){head=[''].concat(NM.slice(0,n).map(function(_,i){return (i+1)+'番目';}));
+   rows=xs.map(function(x,i){var r=[CI[i]||String(i+1)];for(var p=0;p<n;p++){var w=x.slice(0,n).indexOf(p);r.push((mark&&mark(w,x)?'!':'')+NM[w]+(k==='lot'?(x[n+w]?'○':'×'):''));}return r;});}
  else if(k==='wk'){head=[''].concat(DY.slice(0,m));
    rows=xs.map(function(x,i){var r=[CI[i]||String(i+1)];for(var d=0;d<m;d++){var w=x.indexOf(d);r.push(w<0?'－':(mark&&mark(w,x)?'!':'')+NM[w]);}return r;});}
  else{head=[''].concat(NM.slice(0,n));rows=xs.map(function(x,i){return [CI[i]||String(i+1)].concat(x.map(function(v,w){return (mark&&mark(w,x)?'!':'')+KN[v].charAt(0);}));});}
@@ -108,14 +126,14 @@ function qCb(fr,F,n,m,cs,xs){var k=F.k;
    return null;}
  var ps=shuf(NM.slice(0,n).map(function(_,i){return i;}));
  for(var j=0;j<ps.length;j++){var a=ps[j],vs=[];xs.forEach(function(x){if(vs.indexOf(x[a])<0)vs.push(x[a]);});vs.sort(function(p,q){return p-q;});
-   var nc=k==='ord'?n:m;if(vs.length<2||vs.length>nc-1)continue;
+   var nc=k==='wk'?m:n;if(vs.length<2||vs.length>nc-1)continue;
    if(cs.some(function(c){return (c[0]==='pos'||c[0]==='day')&&c[1]===a;}))continue;
-   var ch=[];for(var v=0;v<nc;v++)ch.push(k==='ord'?(v+1)+'番目':DY[v]);
+   var ch=[];for(var v=0;v<nc;v++)ch.push(k!=='wk'?(v+1)+'番目':DY[v]);
    return {q:F.cb(NM[a]),c:ch,a:vs,d:['cb',a],fig:table(fr,F,n,m,xs,function(w){return w===a;}),
      calc:'あり得る'+lab(k)+'は'+xs.length+'通り（表）<br>'+NM[a]+'は '+vs.map(function(v){return ch[v];}).join('・')};}
  return null;}
 /* 条件と同じ文、条件で値が決まっている人についての文は使わない（条件を読むだけで判定できてしまう） */
-function sameAsCond(cs,s){return cs.some(function(c){return JSON.stringify(c.slice(0,3))===JSON.stringify(s)||((c[0]==='is'||c[0]==='pos'||c[0]==='day')&&(s[0]==='is'||s[0]==='pos'||s[0]==='day')&&c[1]===s[1]);});}
+function sameAsCond(cs,s){return cs.some(function(c){if(s[0]==='hit')return (c[0]==='hit'||c[0]==='miss'||c[0]==='firsthit')&&c[1]===s[1];return JSON.stringify(c.slice(0,3))===JSON.stringify(s)||((c[0]==='is'||c[0]==='pos'||c[0]==='day')&&(s[0]==='is'||s[0]==='pos'||s[0]==='day')&&c[1]===s[1]);});}
 function qJudge(fr,F,n,m,cs,xs,neg){var k=F.k,pool=shuf(stPool(k,n,m)).filter(function(s){return !sameAsCond(cs,s);});
  for(var t=0;t<60;t++){var three=[],used={};
    for(var i=0;i<pool.length&&three.length<3;i++){var s=pool[(i+t*7)%pool.length],key=JSON.stringify(s);if(used[key])continue;used[key]=1;three.push(s);}
@@ -146,31 +164,44 @@ function qAdd(fr,F,n,m,cs,xs,lv,rn){var k=F.k;
      c:ADD.slice(),a:h[0],d:['add',three],fig:table(fr,F,n,m,xs),calc:calc};}
  return null;}
 var QF={cb:qCb,pos:function(a,b,c,d,e,f){return qJudge(a,b,c,d,e,f,false);},neg:function(a,b,c,d,e,f){return qJudge(a,b,c,d,e,f,true);},add:qAdd};
+/* 「〜場合、」の形：主語の「は」を「が」に（「Pには」は「Pに」） */
+function ifp(F,c){var t=ctext(F,c);if(/^(はずれ|当たり)は/.test(t))return t.replace('は連','が連');var i=t.indexOf('は'),j=t.indexOf('には');
+ if(j>=0&&j<i)return t.replace('には','に');return i>=0?t.slice(0,i)+'が'+t.slice(i+1):t;}
 /* ---------- 組を1つ作る ---------- */
-function build(fr,lv,qs){var F=FR[fr],L=LV[lv],k=F.k,n=k==='wk'?L.nw:k==='grp'?L.ng:L.n,m=k==='wk'?n+(lv===7?2:1):k==='ord'?n:3;
+function build(fr,lv,qs){var F=FR[fr],L=LV[lv],k=F.k,n=k==='wk'?L.nw:(k==='grp'||k==='lot')?L.ng:L.n,m=k==='wk'?n+(lv===7?2:1):k==='ord'?n:k==='lot'?2:3;
  for(var t=0;t<400;t++){var cs=[],keys={};
    while(cs.length<L.nc){var c=rcond(k,n,m),key=JSON.stringify(c.slice(0,3));if(keys[key])continue;keys[key]=1;cs.push(c);}
    var xs=sol(k,n,m,cs);if(xs.length<L.lo||xs.length>L.hi)continue;
    /* むだな条件がない：どれを外しても場合が増える */
    if(cs.some(function(c,i){return sol(k,n,m,cs.filter(function(_,j){return j!==i;})).length===xs.length;}))continue;
    /* 名前の出てこない人は1人まで */
-   var men={};cs.forEach(function(c){if(c[0]!=='cnt'&&c[0]!=='more'){men[c[1]]=1;if(c[0]!=='pos'&&c[0]!=='day'&&c[0]!=='nday'&&c[0]!=='is'&&c[0]!=='isnot')men[c[2]]=1;}});
-   if(Object.keys(men).length<n-1)continue;
+   var men={},TWO=['before','next','gap','noadj','after','same','diff'],NOONE=['cnt','more','nomiss2','nohit2'];
+   cs.forEach(function(c){if(NOONE.indexOf(c[0])<0)men[c[1]]=1;if(TWO.indexOf(c[0])>=0)men[c[2]]=1;});
+   if(Object.keys(men).length<n-(k==='lot'?2:1))continue;
    var rn='Ⅰ〜'+RN[cs.length-1],subs=[],ok=true;
-   for(var i=0;i<qs.length&&ok;i++){var o=QF[qs[i]](fr,F,n,m,cs,xs,lv,rn);if(!o)ok=false;else{o.l=lv;o.lv=lv;subs.push(o);}}
+   for(var i=0;i<qs.length&&ok;i++){var o=null,ex=null;
+     /* 小問だけに条件を足す（問題集の「Pが4時55分に到着した場合、」の形）。足すと場合は減るが2通り以上残る */
+     if(qs[i]!=='add'&&Math.random()<(lv===7?0.5:0.35))for(var e=0;e<20&&!o;e++){var c2=rcond(k,n,m);if(keys[JSON.stringify(c2.slice(0,3))])continue;
+       var xs2=xs.filter(function(x){return ev(c2,x);});if(xs2.length<2||xs2.length>=xs.length)continue;
+       o=QF[qs[i]](fr,F,n,m,cs,xs2,lv,rn);if(o){ex=c2;o.q=ifp(F,c2)+'場合、'+o.q;o.calc=ifp(F,c2)+'場合に'+o.calc.replace(/^あり得る/,'残る');}}
+     if(!o)o=QF[qs[i]](fr,F,n,m,cs,xs,lv,rn);
+     if(!o)ok=false;else{o.l=lv;o.lv=lv;o.ex=ex;subs.push(o);}}
    if(!ok)continue;
    var stem=F.stem(n,m)+'<br>'+cs.map(function(c,i){return RN[i]+'　'+ctext(F,c);}).join('<br>')+'<br>';
    var inw=cs.map(function(c,i){return RN[i]+'　'+csym(F,c);}).join('<br>');
-   subs.forEach(function(o){o.inwh='記号';o.inw=inw;o.v={fr:fr,lv:lv,n:n,m:m,cs:cs,d:o.d};delete o.d;});
+   subs.forEach(function(o){o.inwh='記号';o.inw=inw+(o.ex?'<br>（この問いだけ）'+csym(F,o.ex):'');o.v={fr:fr,lv:lv,n:n,m:m,cs:cs,d:o.d,ex:o.ex};delete o.d;delete o.ex;});
    return {stem:stem,subs:subs};}
  return null;}
 /* ---------- verify：条件をデータから読み直し、1人ずつ決める深さ優先で数え直して答えの文字列を返す ---------- */
 function verify(v,o){var k=FR[v.fr].k,n=v.n,m=v.m,xs=[];
- (function dfs(x){if(x.length===n){if(k==='grp'&&!(x.indexOf(0)>=0&&x.indexOf(1)>=0&&x.indexOf(2)>=0))return;if(v.cs.every(function(c){return ev(c,x);}))xs.push(x.slice());return;}
+ /* くじ：先に当たりの順番の位置（後ろから）を決め、次に人を1人ずつ置く */
+ if(k==='lot'){for(var h1=n-1;h1>=0;h1--)for(var h2=h1-1;h2>=0;h2--)(function dl(x){if(x.length===n){var y=x.concat(x.map(function(p){return p===h1||p===h2?1:0;}));if(v.cs.every(function(c){return ev(c,y);})&&(!v.ex||ev(v.ex,y)))xs.push(y);return;}
+   for(var val=n-1;val>=0;val--){if(x.indexOf(val)>=0)continue;x.push(val);dl(x);x.pop();}})([]);}
+ else (function dfs(x){if(x.length===n){if(k==='grp'&&!(x.indexOf(0)>=0&&x.indexOf(1)>=0&&x.indexOf(2)>=0))return;if(v.cs.every(function(c){return ev(c,x);})&&(!v.ex||ev(v.ex,x)))xs.push(x.slice());return;}
    for(var val=m-1;val>=0;val--){if(k!=='grp'&&x.indexOf(val)>=0)continue;x.push(val);dfs(x);x.pop();}})([]);
  var d=v.d,F=FR[v.fr];
  if(d[0]==='cb'){if(k==='grp'){var r=[];for(var w=0;w<n;w++)if(xs.some(function(x){return x[w]===d[1];}))r.push(NM[w]);return r;}
-   var s={};xs.forEach(function(x){s[x[d[1]]]=1;});return Object.keys(s).map(function(v2){return k==='ord'?(+v2+1)+'番目':DY[+v2];});}
+   var s={};xs.forEach(function(x){s[x[d[1]]]=1;});return Object.keys(s).map(function(v2){return k!=='wk'?(+v2+1)+'番目':DY[+v2];});}
  if(d[0]==='pos'||d[0]==='neg')return d[1].filter(function(st){var p=xs.some(function(x){return evs(st,x);});return d[0]==='pos'?p:!p;}).map(function(st){return stext(F,st);});
  if(d[0]==='add'){var best=null;for(var i=0;i<SUBS.length;i++){var c=0;xs.forEach(function(x){if(SUBS[i].every(function(j){return evs(d[1][j],x);}))c++;});if(c===1&&(best===null||SUBS[i].length<SUBS[best].length))best=i;}return ADD[best===null?7:best];}
  return null;}
