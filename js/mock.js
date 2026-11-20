@@ -39,17 +39,20 @@ function cbCap(th){return th>=P.c3?3:th>=P.c2?2:th>=P.c1?1:0;}
 function start(){T={th:4,cd:0,i:0,ans:[],used:[],uinf:[],scr:[],t0:Date.now(),fi:{},cb:0,inf:0,n:0};nextQ();}
 function limOf(c){return c.k==='m'?LIM.cb:c.k==='e'?LIM.one:(c.l>=5||TBL.indexOf(c.f)>=0)?120:90;}
 /* 推論の難しさ b（2026-11-20）：形式と選択肢の数で決める（すべて選ぶ・選択肢が多いほど難しい） */
-function bInf(it){var n=(it&&it.c||[]).length;return X.isMulti(it)?(n>=8?7:n>=6?6.6:6.3):(n>=6?6:5.5);}
+function bInf(it){var n=(it&&it.c||[]).length,b=X.isMulti(it)?(n>=8?7:n>=6?6.6:6.3):(n>=6?6:5.5);return it&&it.lv===7?Math.max(b,6.8):b;}
 function bOf(x){return x.k==='c'?x.l:bInf(x.it);}
-/* 推論の出題候補：問題集の組問（set_suiron.js）と、組でない問題集の問題（book_suiron*.js の bk〜）。AIで作った推論（suiron_6/7.js・gen_suiron.js）は使わない */
+/* 推論の出題候補：問題集の組問（set_suiron.js）、組でない問題集の問題（book_suiron*.js の bk〜）、問題集の文の形で指標6・7を分けて作る組（gen_suiron_lv.js、SETS に入る）。
+   易しい自作の推論（suiron_6/7.js・gen_suiron.js）は使わない */
 var INF=null;
 function infPool(){if(INF)return INF;var s=[],inSet={},B=BANK['推論']||{};
   [6,7].forEach(function(l){if(!window.SETCORE)return;SETCORE.list('推論',l).forEach(function(t){s.push({id:t.id,set:t,l:l});(t.ids||[]).forEach(function(i){[].concat(i).forEach(function(j){inSet['bk'+j]=1;});});});});
   [6,7].forEach(function(l){((B[l]||{}).real||[]).forEach(function(x){if(/^bk/.test(x.id||'')&&!inSet[x.id])s.push({id:x.id,src:x,l:l});});});
   return INF=s;}
 function hasCb(cs){return cs.subs.some(function(u){return X.isMulti(u);});}
-function pickInf(want){var p=X.shuffle(infPool().filter(function(o){return T.uinf.indexOf(o.id)<0;})),keep=null;
-  if(!p.length){T.uinf=[];p=X.shuffle(infPool());}
+/* 生成した指標7の組（gen_suiron_lv.js）は θ≥5.7（推定段階6以上の力）になってから出す */
+function infOk(o){return !(o.l===7&&/^set-gen/.test(o.id)&&T.th<5.7);}
+function pickInf(want){var p=X.shuffle(infPool().filter(function(o){return T.uinf.indexOf(o.id)<0&&infOk(o);})),keep=null;
+  if(!p.length){T.uinf=[];p=X.shuffle(infPool().filter(infOk));}
   for(var j=0;j<p.length&&j<40;j++){var o=p[j],cs=null;
     if(o.set){for(var n=0;n<4&&!cs;n++)cs=SETCORE.make('推論',o.set);}
     else{var it=X.inst(o.src);if(it)cs={stem:'',subs:[it],single:1};}
